@@ -6,7 +6,6 @@ from app.db.session import SessionLocal
 from app.models.reading_package import ReadingPackage
 from app.models.user import User
 
-
 PACKAGES = [
     {
         "name": "The Star",
