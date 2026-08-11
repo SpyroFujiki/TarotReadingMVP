@@ -137,3 +137,4 @@ class Booking(Base):
         DateTime(timezone=True),
         nullable=False,
         server_default=text("now()"),
+    )
