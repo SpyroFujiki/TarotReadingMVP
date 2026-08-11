@@ -2,11 +2,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str
+    app_name: str = "Tarot Reading MVP"
     database_url: str
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
+
+    seed_user_password: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -1,37 +1,7 @@
-'''Table bookings {
-  id uuid [pk, default: `gen_random_uuid()`]
-
-  package_id uuid [not null, ref: > reading_packages.id]
-  customer_id uuid [not null, ref: > users.id]
-  reader_id uuid [ref: > users.id, note: 'Null khi đơn chưa được reader nhận']
-
-  question text [not null]
-  status booking_status [not null, default: 'pending']
-  
-  package_name_snapshot varchar(150) [not null, note: 'Tên gói tại thời điểm mua']
-  price_snapshot int [not null, note: 'Giá gói tại thời điểm mua']
-  expected_response_minutes_snapshot int [not null]
-
-  paid_at timestamptz
-  assigned_at timestamptz
-  started_at timestamptz
-  completed_at timestamptz
-  cancelled_at timestamptz
-  created_at timestamptz [not null, default: `now()`]
-  updated_at timestamptz [not null, default: `now()`]
-
-  Indexes {
-    (customer_id, status)
-    (reader_id, status)
-    (status, created_at)
-    (payment_status)
-  }
-}'''
-
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, text
+from sqlalchemy import DateTime, String, text, func, Index, ForeignKey, Integer, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -40,8 +10,19 @@ from app.models.enum import BookingStatus
 from app.models.reading_package import ReadingPackage
 from app.models.user import User
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.dispute import Dispute
+    from app.models.service_message import ServiceMessage
+
 class Booking(Base):
     __tablename__ = "bookings"
+
+    __table_args__ = (
+        Index("ix_bookings_customer_id_status", "customer_id", "status"),
+        Index("ix_bookings_reader_id_status", "reader_id", "status"),
+        Index("ix_bookings_status_created_at", "status", "created_at"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -51,6 +32,7 @@ class Booking(Base):
 
     package_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
+        ForeignKey("reading_packages.id"),
         nullable=False,
     )
     package: Mapped["ReadingPackage"] = relationship(
@@ -61,6 +43,7 @@ class Booking(Base):
 
     customer_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
+        ForeignKey("users.id"),
         nullable=False,
     )
     customer: Mapped["User"] = relationship(
@@ -70,8 +53,9 @@ class Booking(Base):
         lazy="joined",
     )
 
-    reader_id: Mapped[uuid.UUID] = mapped_column(
+    reader_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
     reader: Mapped["User"] = relationship(
@@ -87,7 +71,10 @@ class Booking(Base):
     )
 
     status: Mapped[BookingStatus] = mapped_column(
-        BookingStatus,
+        SQLEnum(
+            BookingStatus, 
+            name="booking_status",
+            values_callable = lambda enum_class: [member.value for member in enum_class]),
         nullable=False,
         default=BookingStatus.PENDING,
         server_default=BookingStatus.PENDING.value,
@@ -99,36 +86,36 @@ class Booking(Base):
     )
     
     price_snapshot: Mapped[int] = mapped_column(
-        int,
+        Integer,
         nullable=False
     )
     
     expected_response_minutes_snapshot: Mapped[int] = mapped_column(
-        int,
+        Integer,
         nullable=False
     )
     
-    paid_at: Mapped[datetime] = mapped_column(
+    paid_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
     
-    assigned_at: Mapped[datetime] = mapped_column(
+    assigned_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
     
-    started_at: Mapped[datetime] = mapped_column(
+    started_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
     
-    completed_at: Mapped[datetime] = mapped_column(
+    completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
     
-    cancelled_at: Mapped[datetime] = mapped_column(
+    cancelled_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
@@ -137,4 +124,22 @@ class Booking(Base):
         DateTime(timezone=True),
         nullable=False,
         server_default=text("now()"),
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("now()"),
+        onupdate=func.now(),
+    )
+
+    dispute: Mapped["Dispute | None"] = relationship(
+        "Dispute",
+        back_populates="booking",
+        uselist=False,
+    )
+
+    service_messages: Mapped[list["ServiceMessage"]] = relationship(
+        "ServiceMessage",
+        back_populates="booking",
     )

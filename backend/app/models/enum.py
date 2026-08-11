@@ -1,8 +1,4 @@
-from sqlalchemy import (
-    Enum,
-)
-
-from app.db.base import Base
+from enum import Enum
 
 class UserRoles(str, Enum):
     ADMIN = "admin"

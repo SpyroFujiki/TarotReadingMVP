@@ -7,6 +7,9 @@ from app import models
 from app.core.config import settings
 from app.db.base import Base
 
+import app.models
+
+target_metadata = Base.metadata
 
 config = context.config
 

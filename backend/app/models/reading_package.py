@@ -1,13 +1,25 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import (Boolean, DateTime, ForeignKey, Index, Integer, String, Text, text, func)
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.enum import BookingStatus
-from app.models.user import User
+
+if TYPE_CHECKING:
+    from app.models.booking import Booking
+
 
 class ReadingPackage(Base):
     __tablename__ = "reading_packages"
@@ -22,43 +34,50 @@ class ReadingPackage(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default = text("uuidv7()"),
+        server_default=text("uuidv7()"),
     )
-    
+
     name: Mapped[str] = mapped_column(
         String(150),
-        nullable=False
+        nullable=False,
     )
-    
-    description: Mapped[str] = mapped_column(
+
+    description: Mapped[str | None] = mapped_column(
         Text,
+        nullable=True,
     )
-    
+
     price: Mapped[int] = mapped_column(
         Integer,
-        nullable=False
+        nullable=False,
     )
-    
+
     expected_response_minutes: Mapped[int] = mapped_column(
         Integer,
-        nullable=False
+        nullable=False,
     )
-    
+
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
-        default=True
+        default=True,
+        server_default=text("true"),
     )
-    
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        server_default=func.now()
+        server_default=func.now(),
     )
-    
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
-        onupdate=func.now()
+        onupdate=func.now(),
+    )
+
+    bookings: Mapped[list["Booking"]] = relationship(
+        "Booking",
+        back_populates="package",
     )

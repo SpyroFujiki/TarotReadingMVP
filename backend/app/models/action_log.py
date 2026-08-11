@@ -52,14 +52,17 @@ class ActionLog(Base):
         String(100),
         nullable=False,
     )
-    old_value: Mapped[dict] = mapped_column(
+    old_value: Mapped[dict | None] = mapped_column(
         JSONB,
+        nullable=True,
     )
-    new_value: Mapped[dict] = mapped_column(
+    new_value: Mapped[dict | None] = mapped_column(
         JSONB,
+        nullable=True,
     )
     reason: Mapped[str] = mapped_column(
         Text,
+        nullable=False,
     )
 
     created_at: Mapped[datetime] = mapped_column(

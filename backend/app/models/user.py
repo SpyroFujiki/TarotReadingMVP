@@ -9,10 +9,17 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.booking import Booking
+    from app.models.service_message import ServiceMessage
+    from app.models.action_log import ActionLog
+    from app.models.dispute import Dispute
+    from app.models.dispute_message import DisputeMessage
 
 class User(Base):
     __tablename__ = "users"
@@ -77,4 +84,45 @@ class User(Base):
     last_active_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
+    )
+
+    customer_bookings: Mapped[list["Booking"]] = relationship(
+        "Booking",
+        foreign_keys="Booking.customer_id",
+        back_populates="customer",
+    )
+
+    reader_bookings: Mapped[list["Booking"]] = relationship(
+        "Booking",
+        foreign_keys="Booking.reader_id",
+        back_populates="reader",
+    )
+
+    raised_disputes: Mapped[list["Dispute"]] = relationship(
+        "Dispute",
+        foreign_keys="Dispute.raised_by_id",
+        back_populates="raised_by",
+    )
+
+    handled_disputes: Mapped[list["Dispute"]] = relationship(
+        "Dispute",
+        foreign_keys="Dispute.admin_id",
+        back_populates="admin",
+    )
+
+    sent_service_messages: Mapped[list["ServiceMessage"]] = relationship(
+        "ServiceMessage",
+        foreign_keys="ServiceMessage.sender_id",
+        back_populates="sender",
+    )
+
+    sent_dispute_messages: Mapped[list["DisputeMessage"]] = relationship(
+        "DisputeMessage",
+        foreign_keys="DisputeMessage.sender_id",
+        back_populates="sender",
+    )
+
+    action_logs: Mapped[list["ActionLog"]] = relationship(
+        "ActionLog",
+        back_populates="actor",
     )
