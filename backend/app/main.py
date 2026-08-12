@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.api.auth import router as auth_router
+from app.api.packages import router as packages_router
+
 from app.db.session import engine
 
 
@@ -10,6 +12,8 @@ app = FastAPI(
     title="Tarot Reading API",
     version="0.1.0",
 )
+
+app.include_router(packages_router)
 
 app.add_middleware(
     CORSMiddleware,
