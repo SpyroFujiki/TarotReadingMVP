@@ -2,7 +2,8 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -13,6 +14,51 @@ from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserPublic
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+bearer_scheme = HTTPBearer(auto_error=False)
+
+def require_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> User:
+    unauthorized_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Token không hợp lệ hoặc đã hết hạn.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    if credentials is None:
+        raise unauthorized_exception
+
+    try:
+        payload = jwt.decode(
+            credentials.credentials,
+            settings.jwt_secret_key,
+            algorithms=[settings.jwt_algorithm],
+        )
+
+        subject = payload.get("sub")
+
+        if subject is None:
+            raise unauthorized_exception
+
+        user_id = UUID(subject)
+
+    except (jwt.InvalidTokenError, ValueError):
+        raise unauthorized_exception
+
+    user = db.get(User, user_id)
+
+    if user is None:
+        raise unauthorized_exception
+
+    if user.status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản hiện không hoạt động.",
+        )
+
+    return user
 
 
 def _create_access_token(subject: str) -> str:
@@ -44,13 +90,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
     token = _create_access_token(str(user.id))
     return TokenResponse(
         access_token=token,
-        user=UserPublic(
-            id=str(user.id),
-            email=user.email,
-            full_name=user.full_name,
-            role=user.role,
-            status=user.status,
-        ),
+        user=UserPublic.model_validate(user),
     )
 
 
@@ -79,11 +119,18 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenRe
     token = _create_access_token(str(user.id))
     return TokenResponse(
         access_token=token,
-        user=UserPublic(
-            id=str(user.id),
-            email=user.email,
-            full_name=user.full_name,
-            role=user.role,
-            status=user.status,
-        ),
+        user=UserPublic.model_validate(user),
     )
+
+@router.get(
+    "/me", 
+    response_model=UserPublic,
+    responses={
+        401: {"description": "Token thiếu, không hợp lệ hoặc hết hạn"},
+        403: {"description": "Tài khoản không hoạt động"},
+    },
+)
+def read_current_user(
+    current_user: User = Depends(require_current_user),
+) -> User:
+    return current_user

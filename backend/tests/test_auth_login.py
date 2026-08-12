@@ -1,4 +1,4 @@
-from uuid import uuid7
+from uuid import uuid4
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -13,7 +13,7 @@ client = TestClient(app)
 
 
 def test_login_returns_token_for_valid_credentials():
-    email = f"login-{uuid7()}@example.com"
+    email = f"login-{uuid4()}@example.com"
 
     with SessionLocal() as session:
         session.add(
@@ -52,7 +52,7 @@ def test_register_creates_user_and_returns_token():
     response = client.post(
         "/auth/register",
         json={
-            "email": f"newuser-{uuid7()}@example.com",
+            "email": f"newuser-{uuid4()}@example.com",
             "password": "Abc123!@",
             "confirm_password": "Abc123!@",
             "full_name": "New User",
