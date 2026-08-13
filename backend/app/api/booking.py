@@ -152,10 +152,85 @@ def claim_booking(
 
     return booking
 
-@router.get(
-    "/{booking_id}",
-    response_model=BookingPublic,
-)
+@router.post("/{booking_id}/start",response_model=BookingPublic,)
+def start_booking(
+    booking_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_minimum_role("reader")),
+) -> Booking:
+    updated_booking_id = db.scalar(
+        update(Booking)
+        .where(
+            Booking.id == booking_id,
+            Booking.reader_id == current_user.id,
+            Booking.status == BookingStatus.ASSIGNED,
+        )
+        .values(
+            status = BookingStatus.IN_PROGRESS,
+            started_at = datetime.now(timezone.utc),
+        )
+        .returning(Booking.id)
+    )
+
+    if updated_booking_id is None:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Đơn hàng không do reader này phụ trách hoặc không ở trạng thái ASSIGNED.",
+        )
+
+    db.commit()
+
+    booking = db.get(Booking, updated_booking_id)
+
+    if booking is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy đơn hàng."
+        )
+
+    return booking
+
+@router.post("/{booking_id}/complete",response_model=BookingPublic,)
+def start_booking(
+    booking_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_minimum_role("reader")),
+) -> Booking:
+    updated_booking_id = db.scalar(
+        update(Booking)
+        .where(
+            Booking.id == booking_id,
+            Booking.reader_id == current_user.id,
+            Booking.status == BookingStatus.IN_PROGRESS,
+        )
+        .values(
+            status = BookingStatus.COMPLETED,
+            completed_at = datetime.now(timezone.utc),
+        )
+        .returning(Booking.id)
+    )
+
+    if updated_booking_id is None:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Đơn hàng không do reader này phụ trách hoặc không ở trạng thái IN_PROGRESS.",
+        )
+
+    db.commit()
+
+    booking = db.get(Booking, updated_booking_id)
+
+    if booking is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy đơn hàng."
+        )
+
+    return booking
+
+@router.get("/{booking_id}",response_model=BookingPublic,)
 def get_my_booking(
     booking_id: uuid.UUID,
     db: Session = Depends(get_db),
