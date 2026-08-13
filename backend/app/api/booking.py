@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.db.dependencies import get_db
@@ -71,9 +71,7 @@ def create_booking(
 )
 def list_my_bookings(
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_minimum_role("customer")
-    ),
+    current_user: User = Depends(require_minimum_role("customer")),
 ) -> list[Booking]:
     bookings = db.scalars(
         select(Booking)
@@ -83,6 +81,77 @@ def list_my_bookings(
 
     return list(bookings)
 
+@router.get("/queue",response_model=list[BookingPublic])
+def list_booking_queue(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_minimum_role("reader")),
+) -> list[Booking]:
+    bookings = db.scalars(
+            select(Booking)
+            .where(
+                Booking.status == BookingStatus.PENDING,
+                Booking.reader_id == None
+            )
+            .order_by(Booking.created_at.asc())
+        ).unique().all()
+    
+    return list(bookings)
+
+@router.get("/assigned-to-me", response_model=list[BookingPublic],)
+def list_assigned_bookings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_minimum_role("reader")),
+) -> list[Booking]:
+    bookings = db.scalars(
+            select(Booking)
+            .where(
+                Booking.reader_id == current_user.id,
+                Booking.status.in_([BookingStatus.ASSIGNED, BookingStatus.IN_PROGRESS])
+            )
+            .order_by(Booking.created_at.desc())
+        ).unique().all()
+    
+    return list(bookings)    
+
+@router.post("/{booking_id}/claim", response_model=BookingPublic)
+def claim_booking(
+    booking_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_minimum_role("reader")),
+) -> Booking:
+    claimed_booking_id = db.scalar(
+        update(Booking)
+        .where(
+            Booking.id == booking_id,
+            Booking.status == BookingStatus.PENDING,
+            Booking.reader_id.is_(None),
+        )
+        .values(
+            reader_id = current_user.id,
+            status = BookingStatus.ASSIGNED,
+            assigned_at = datetime.now(timezone.utc),
+        )
+        .returning(Booking.id)
+    )
+
+    if claimed_booking_id == None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail = "Đơn trải bài không tồn tại hoặc đã được reader khác nhận."
+        )
+
+    db.commit()
+
+    booking = db.get(Booking, claimed_booking_id)
+
+    if Booking is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail = "Không tìm thấy Booking."
+        )
+
+    return booking
+
 @router.get(
     "/{booking_id}",
     response_model=BookingPublic,
@@ -90,9 +159,7 @@ def list_my_bookings(
 def get_my_booking(
     booking_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_minimum_role("customer")
-    ),
+    current_user: User = Depends(require_minimum_role("customer")),
 ) -> Booking:
     booking = db.scalar(
         select(Booking).where(

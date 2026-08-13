@@ -12,7 +12,6 @@ class UserStatus(str, Enum):
 
 class BookingStatus(str, Enum):
     PENDING = "pending"
-    CONFIRMED = "confirmed"
     ASSIGNED = "assigned"
     COMPLETED = "completed"
     CANCELED = "canceled"
