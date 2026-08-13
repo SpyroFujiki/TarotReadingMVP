@@ -62,18 +62,22 @@ def require_current_user(
 
 def require_minimum_role(required_role: str):
     if required_role not in ROLE_LEVELS:
-        raise ValueError("Role không hợp lệ")
+        raise ValueError(f"Role không hợp lệ: {required_role}")
+
+    required_level = ROLE_LEVELS[required_role]
 
     def dependency(
-            current_user: User = Depends(require_current_user),
+        current_user: User = Depends(require_current_user),
     ) -> User:
-        current_level = ROLE_LEVELS.get(current_user.role, 0)
-        required_role = ROLE_LEVELS[required_role]
+        current_level = ROLE_LEVELS.get(
+            current_user.role,
+            0,
+        )
 
-        if current_level < required_role:
+        if current_level < required_level:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Bạn không có quyền thực hiện thao tác này."
+                detail="Bạn không có quyền thực hiện thao tác này.",
             )
 
         return current_user

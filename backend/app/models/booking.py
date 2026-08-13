@@ -65,8 +65,8 @@ class Booking(Base):
         lazy="joined",
     )
 
-    question: Mapped[str] = mapped_column(
-        String(500),
+    topic: Mapped[str] = mapped_column(
+        String(150),
         nullable=False,
     )
 
