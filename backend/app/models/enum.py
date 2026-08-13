@@ -34,3 +34,10 @@ class DisputeMessageType(str, Enum):
     COMMENT = "comment"
     EVIDENCE = "evidence"
     SYSTEM = "system"
+
+class DisputeReasonCategory(str, Enum):
+    INCOMPLETE_SERVICE = "incomplete_service"
+    SERVICE_NOT_AS_DESCRIBED = "service_not_as_described"
+    POOR_QUALITY = "poor_quality"
+    INAPPROPRIATE_CONDUCT = "inappropriate_conduct"
+    OTHER = "other"
