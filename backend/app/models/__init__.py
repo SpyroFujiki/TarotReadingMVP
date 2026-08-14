@@ -1,4 +1,5 @@
 from app.models.action_log import ActionLog
+from app.models.audit import AdminAuditLog
 from app.models.booking import Booking
 from app.models.dispute import Dispute
 from app.models.dispute_message import DisputeMessage
@@ -8,6 +9,7 @@ from app.models.user import User
 
 __all__ = [
     "ActionLog",
+    "AdminAuditLog",
     "Booking",
     "Dispute",
     "DisputeMessage",
