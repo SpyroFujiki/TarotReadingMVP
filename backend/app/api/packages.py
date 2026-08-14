@@ -1,3 +1,5 @@
+# Tính năng: Gói xem
+
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -11,7 +13,11 @@ from app.schemas.package import ReadingPackagePublic
 router = APIRouter(prefix="/packages", tags=["packages"])
 
 
-@router.get("", response_model=list[ReadingPackagePublic])
+@router.get(
+    "", 
+    response_model=list[ReadingPackagePublic], 
+    summary="Lấy danh sách gói xem đang hoạt động",
+)
 def list_packages(db: Session = Depends(get_db)) -> list[ReadingPackage]:
     packages = db.scalars(
         select(ReadingPackage).where(ReadingPackage.is_active.is_(True)).order_by(ReadingPackage.price.asc())
@@ -19,7 +25,11 @@ def list_packages(db: Session = Depends(get_db)) -> list[ReadingPackage]:
     return packages
 
 
-@router.get("/{package_id}", response_model=ReadingPackagePublic)
+@router.get(
+    "/{package_id}", 
+    response_model=ReadingPackagePublic, 
+    summary="Lấy thông tin chi tiết của một gói xem"
+)
 def get_package(package_id: uuid.UUID, db: Session = Depends(get_db)) -> ReadingPackage:
     package = db.scalar(
         select(ReadingPackage).where(

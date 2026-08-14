@@ -1,3 +1,5 @@
+# Hàm phụ thuộc để lấy người dùng hiện tại từ token JWT
+
 from pwdlib import PasswordHash
 
 password_hasher = PasswordHash.recommended()

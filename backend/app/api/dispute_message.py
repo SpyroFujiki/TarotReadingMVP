@@ -1,3 +1,5 @@
+# Tính năng: Tin nhắn khiếu nại
+
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -23,7 +25,7 @@ router = APIRouter(
     tags=["dispute-messages"],
 )
 
-
+#Kiểm tra xem khiếu nại có tồn tại hay không
 def get_existed_dispute(
     dispute_id: uuid.UUID,
     db: Session,
@@ -38,7 +40,7 @@ def get_existed_dispute(
 
     return dispute
 
-
+#Kiểm tra quyền đọc khiếu nại
 def require_dispute_read_access(
     dispute: Dispute,
     current_user: User,
@@ -58,7 +60,7 @@ def require_dispute_read_access(
             detail="Bạn không có quyền truy cập khiếu nại này.",
         )
 
-
+# Kiểm tra quyền gửi tin nhắn khiếu nại
 def require_dispute_send_access(
     dispute: Dispute,
     current_user: User,
@@ -82,6 +84,7 @@ def require_dispute_send_access(
     "/{dispute_id}/messages",
     response_model=DisputeMessagePublic,
     status_code=status.HTTP_201_CREATED,
+    summary="Gửi tin nhắn trong khiếu nại (chỉ người liên quan mới có quyền gửi)",
 )
 def create_dispute_message(
     dispute_id: uuid.UUID,
@@ -125,6 +128,7 @@ def create_dispute_message(
 @router.get(
     "/{dispute_id}/messages",
     response_model=list[DisputeMessagePublic],
+    summary="Lấy danh sách tin nhắn trong khiếu nại (chỉ người liên quan mới có quyền xem)",
 )
 def list_dispute_messages(
     dispute_id: uuid.UUID,

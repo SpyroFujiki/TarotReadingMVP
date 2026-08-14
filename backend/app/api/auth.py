@@ -1,3 +1,6 @@
+# Tính năng xác thực và đăng ký người dùng, 
+# bao gồm đăng nhập, đăng ký, và lấy thông tin người dùng hiện tại.
+
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -28,7 +31,11 @@ def _create_access_token(subject: str) -> str:
     }
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login", 
+    response_model=TokenResponse,
+    summary="Đăng nhập người dùng và nhận token truy cập",
+)
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     user = db.scalar(select(User).where(User.email == str(payload.email).lower()))
 
@@ -51,7 +58,11 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
     )
 
 
-@router.post("/register", response_model=TokenResponse)
+@router.post(
+    "/register", 
+    response_model=TokenResponse,
+    summary="Đăng ký người dùng mới"
+)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenResponse:
     normalized_email = str(payload.email).lower()
     existing_user = db.scalar(select(User).where(User.email == normalized_email))
@@ -79,7 +90,11 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenRe
         user=UserPublic.model_validate(user),
     )
 
-@router.get("/me",response_model=UserPublic)
+@router.get(
+    "/me",
+    response_model=UserPublic,
+    summary="Lấy thông tin người dùng hiện tại"
+)
 def read_current_user(
     current_user: User = Depends(require_current_user),
 ) -> User:

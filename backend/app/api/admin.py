@@ -1,3 +1,6 @@
+#Tính năng quản trị viên (admin) để quản lý khiếu nại, 
+#người dùng và nhật ký kiểm toán (audit logs).
+
 import uuid
 import json
 from datetime import datetime, timezone
@@ -45,6 +48,7 @@ def log_audit(
 @router.get(
     "/disputes",
     response_model=list[DisputePublic],
+    summary="Danh sách khiếu nại đang mở hoặc đang xem xét"
 )
 def list_admin_disputes(
     db: Session = Depends(get_db),
@@ -68,6 +72,7 @@ def list_admin_disputes(
 @router.post(
     "/disputes/{dispute_id}/claim",
     response_model=DisputePublic,
+    summary="Nhận khiếu nại để xem xét (chỉ admin mới có quyền thực hiện)"
 )
 def claim_dispute(
     dispute_id: uuid.UUID,
@@ -109,6 +114,7 @@ def claim_dispute(
             detail="Khiếu nại đã được admin khác nhận.",
         )
 
+    # Ghi lại hành động nhận khiếu nại vào nhật ký kiểm toán
     log_audit(
         db=db,
         admin_id=current_user.id,
@@ -135,6 +141,7 @@ def claim_dispute(
 @router.post(
     "/disputes/{dispute_id}/resolve",
     response_model=DisputePublic,
+    summary="Giải quyết khiếu nại (chỉ admin đã nhận khiếu nại mới có quyền thực hiện)"
 )
 def resolve_dispute(
     dispute_id: uuid.UUID,
@@ -199,8 +206,7 @@ def resolve_dispute(
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=(
-                    "Tiền hoàn một phần phải lớn hơn 0 "
-                    "và nhỏ hơn giá booking."
+                    "Tiền hoàn một phần phải lớn hơn 0 và nhỏ hơn giá booking."
                 ),
             )
 
@@ -226,6 +232,7 @@ def resolve_dispute(
         "refund_amount": None,
     }
 
+    # Cập nhật trạng thái khiếu nại và booking dựa trên kết quả xử lý
     dispute.status = DisputeStatus.RESOLVED
     dispute.verdict = payload.verdict
     dispute.refund_amount = refund_amount
@@ -245,6 +252,7 @@ def resolve_dispute(
 
     booking.updated_at = now
 
+    #Ghi lại hành động giải quyết khiếu nại vào nhật ký kiểm toán
     log_audit(
         db=db,
         admin_id=current_user.id,
@@ -313,7 +321,11 @@ def ensure_admin_change_allowed(
                 detail="Không thể hạ quyền admin active cuối cùng.",
             )
 
-@router.get("/users", response_model=list[AdminUserPublic])
+@router.get(
+    "/users", 
+    response_model=list[AdminUserPublic],
+    summary="Danh sách người dùng (chỉ admin mới có quyền thực hiện)"
+)
 def user_list(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_minimum_role("admin")),
@@ -325,6 +337,7 @@ def user_list(
 @router.patch(
     "/users/{user_id}/role",
     response_model=AdminUserPublic,
+    summary="Cập nhật quyền của người dùng (chỉ admin mới có quyền thực hiện)"
 )
 def update_user_role(
     user_id: uuid.UUID,
@@ -353,6 +366,7 @@ def update_user_role(
     target_user.role = payload.role
     target_user.updated_at = datetime.now(timezone.utc)
 
+    #Ghi lại hành động cập nhật quyền người dùng vào nhật ký kiểm toán
     log_audit(
         db=db,
         admin_id=current_user.id,
@@ -371,6 +385,7 @@ def update_user_role(
 @router.patch(
     "/users/{user_id}/status",
     response_model=AdminUserPublic,
+    summary="Cập nhật trạng thái của người dùng (chỉ admin mới có quyền thực hiện)"
 )
 def update_user_status(
     user_id: uuid.UUID,
@@ -399,6 +414,7 @@ def update_user_status(
     target_user.status = payload.status
     target_user.updated_at = datetime.now(timezone.utc)
 
+    #Ghi lại hành động cập nhật trạng thái người dùng vào nhật ký kiểm toán
     log_audit(
         db=db,
         admin_id=current_user.id,
@@ -414,14 +430,17 @@ def update_user_status(
 
     return target_user
 
-@router.get("/audit-logs", response_model=list[AdminAuditLogPublic])
+@router.get(
+    "/audit-logs",
+    response_model=list[AdminAuditLogPublic],
+    summary="Lấy danh sách nhật ký kiểm toán (chỉ admin mới có quyền thực hiện)"
+)
 def get_audit_logs(
     limit: int = 100,
     offset: int = 0,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_minimum_role("admin")),
 ) -> list[AdminAuditLog]:
-    """Lấy danh sách audit logs"""
     logs = db.scalars(
         select(AdminAuditLog)
         .order_by(AdminAuditLog.created_at.desc())

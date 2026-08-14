@@ -1,3 +1,7 @@
+# Tính năng quản lý booking, 
+# bao gồm tạo booking, liệt kê booking của người dùng, 
+# và các thao tác liên quan đến booking cho reader.
+
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -23,6 +27,7 @@ router = APIRouter(prefix="/bookings", tags=["bookings"])
         "/",
         response_model=BookingPublic,
         status_code=status.HTTP_201_CREATED,
+        summary="Tạo booking mới (ai cũng có quyền thực hiện)"
     )
 def create_booking(
     payload: BookingCreate,
@@ -48,6 +53,7 @@ def create_booking(
             detail="Chủ đề không được để trống.",
         )
 
+    # Tạo booking mới với trạng thái PENDING
     booking = Booking(
         package_id=package.id,
         customer_id=current_user.id,
@@ -68,6 +74,7 @@ def create_booking(
 @router.get(
     "/me",
     response_model=list[BookingPublic],
+    summary="Liệt kê các booking của người dùng hiện tại"
 )
 def list_my_bookings(
     db: Session = Depends(get_db),
@@ -81,7 +88,11 @@ def list_my_bookings(
 
     return list(bookings)
 
-@router.get("/queue",response_model=list[BookingPublic])
+@router.get(
+    "/queue",
+    response_model=list[BookingPublic],
+    summary="Liệt kê các booking đang chờ được nhận"
+)
 def list_booking_queue(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_minimum_role("reader")),
@@ -97,7 +108,11 @@ def list_booking_queue(
     
     return list(bookings)
 
-@router.get("/assigned-to-me", response_model=list[BookingPublic],)
+@router.get(
+    "/assigned-to-me",
+    response_model=list[BookingPublic],
+    summary="Liệt kê các booking đã được giao cho người dùng hiện tại"
+)
 def list_assigned_bookings(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_minimum_role("reader")),
@@ -113,7 +128,11 @@ def list_assigned_bookings(
     
     return list(bookings)    
 
-@router.post("/{booking_id}/claim", response_model=BookingPublic)
+@router.post(
+    "/{booking_id}/claim",
+    response_model=BookingPublic,
+    summary="Nhận booking (chỉ reader trở lên mới có quyền thực hiện)"
+)
 def claim_booking(
     booking_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -152,7 +171,11 @@ def claim_booking(
 
     return booking
 
-@router.post("/{booking_id}/start",response_model=BookingPublic,)
+@router.post(
+    "/{booking_id}/start",
+    response_model=BookingPublic,
+    summary="Bắt đầu thực hiện booking (chỉ reader trở lên mới có quyền thực hiện)"
+)
 def start_booking(
     booking_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -191,8 +214,12 @@ def start_booking(
 
     return booking
 
-@router.post("/{booking_id}/complete",response_model=BookingPublic,)
-def start_booking(
+@router.post(
+    "/{booking_id}/complete",
+    response_model=BookingPublic,
+    summary="Hoàn thành booking (chỉ reader trở lên mới có quyền thực hiện)"
+)
+def complete_booking(
     booking_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_minimum_role("reader")),
@@ -230,7 +257,12 @@ def start_booking(
 
     return booking
 
-@router.get("/{booking_id}",response_model=BookingPublic,)
+@router.get(
+    "/{booking_id}",
+    response_model=BookingPublic,
+    summary="Lấy thông tin chi tiết của một booking "
+    "(chỉ người dùng liên quan mới có quyền xem)"
+)
 def get_my_booking(
     booking_id: uuid.UUID,
     db: Session = Depends(get_db),

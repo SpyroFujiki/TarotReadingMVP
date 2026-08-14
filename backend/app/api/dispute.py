@@ -1,3 +1,5 @@
+# Tính năng: Khiếu nại
+
 import uuid
 from datetime import datetime, timezone
 
@@ -23,6 +25,7 @@ router = APIRouter(tags=["disputes"])
     "/bookings/{booking_id}/dispute",
     response_model=DisputePublic,
     status_code=status.HTTP_201_CREATED,
+    summary="Tạo khiếu nại cho đơn hàng (chỉ người liên quan mới có quyền khiếu nại)"
 )
 def create_dispute(
     booking_id: uuid.UUID,
@@ -99,6 +102,7 @@ def create_dispute(
 @router.get(
     "/disputes/me",
     response_model=list[DisputePublic],
+    summary="Lấy danh sách khiếu nại của người dùng hiện tại"
 )
 def list_my_disputes(
     db: Session = Depends(get_db),
@@ -115,6 +119,7 @@ def list_my_disputes(
 @router.get(
     "/disputes/{dispute_id}",
     response_model=DisputePublic,
+    summary="Lấy thông tin chi tiết của một khiếu nại (chỉ người liên quan mới có quyền xem)"
 )
 def get_dispute_detail(
     dispute_id: uuid.UUID,

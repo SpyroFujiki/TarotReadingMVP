@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+# Cấu hình ứng dụng và các biến môi trường
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "Tarot Reading MVP"

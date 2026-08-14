@@ -1,3 +1,5 @@
+# Hàm phụ thuộc để xác thực người dùng hiện tại và kiểm tra vai trò tối thiểu
+
 from uuid import UUID
 
 import jwt
@@ -17,6 +19,7 @@ ROLE_LEVELS = {
     "customer": 1,
 }
 
+# Hàm phụ thuộc để xác thực người dùng hiện tại
 def require_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
@@ -60,6 +63,7 @@ def require_current_user(
 
     return user
 
+# Hàm phụ thuộc để kiểm tra vai trò tối thiểu của người dùng hiện tại
 def require_minimum_role(required_role: str):
     if required_role not in ROLE_LEVELS:
         raise ValueError(f"Role không hợp lệ: {required_role}")

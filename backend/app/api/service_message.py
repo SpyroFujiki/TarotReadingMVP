@@ -1,3 +1,5 @@
+# Tính năng: Tin nhắn dịch vụ
+
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -17,6 +19,7 @@ from app.schemas.service_message import (
 
 router = APIRouter(prefix="/bookings",tags=["service-messages"],)
 
+# Kiểm tra xem đơn hàng có tồn tại hay không
 def get_existed_booking(
     booking_id: uuid.UUID,
     db: Session,
@@ -31,6 +34,7 @@ def get_existed_booking(
 
     return booking
 
+# Kiểm tra quyền đọc tin nhắn
 def require_message_read_access(
     booking: Booking,
     current_user: User,
@@ -48,6 +52,7 @@ def require_message_read_access(
             detail="Bạn không có quyền đọc tin nhắn của đơn này.",
         )
         
+# Kiểm tra quyền gửi tin nhắn
 def require_message_send_access(
     booking: Booking,
     current_user: User,
@@ -70,6 +75,7 @@ def require_message_send_access(
 @router.post("/{booking_id}/messages",
     response_model=ServiceMessagePublic,
     status_code=status.HTTP_201_CREATED,
+    summary="Gửi tin nhắn trong cuộc trò chuyện dịch vụ (chỉ người liên quan mới có quyền gửi)"
 )
 def create_service_message(
     booking_id: uuid.UUID,
@@ -106,6 +112,7 @@ def create_service_message(
 @router.get(
     "/{booking_id}/messages",
     response_model=list[ServiceMessagePublic],
+    summary="Lấy danh sách tin nhắn trong cuộc trò chuyện dịch vụ"
 )
 def list_service_messages(
     booking_id: uuid.UUID,
