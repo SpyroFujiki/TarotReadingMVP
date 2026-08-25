@@ -1,0 +1,3 @@
+import { useAuth } from "../contexts/AuthContext";
+import AppPlaceholder from "./AppPlaceholder";
+export default function AccountPage() { const { user } = useAuth(); return <section className="page-section account-page"><p className="eyebrow">TÀI KHOẢN</p><h1>Xin chào, {user?.full_name || "bạn"}.</h1><p className="lead">Đây là không gian điều hướng cho các hoạt động của bạn.</p><div className="info-grid"><div><span>Vai trò</span><strong>{user?.role}</strong></div><div><span>Email</span><strong>{user?.email}</strong></div><div><span>Trạng thái</span><strong>{user?.status}</strong></div></div><AppPlaceholder title="" description="Chọn một mục trên thanh điều hướng để bắt đầu." /></section>; }

@@ -1,0 +1,24 @@
+:root {
+  --bg-dark: #001f3f;
+  --gold: #ffd700;
+  --gold-dim: rgba(255, 215, 0, 0.3);
+  --text-light: #f4f4f4;
+  --text-dim: #cccccc;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --ink: var(--text-light);
+  --muted: var(--text-dim);
+  --paper: var(--bg-dark);
+  --surface: #062b4d;
+  --line: #285071;
+  --accent: var(--gold);
+  --accent-dark: #e6b800;
+  --sage: #78a99a;
+  --heading: Georgia, "Times New Roman", serif;
+  --body: "Trebuchet MS", "Segoe UI", sans-serif;
+  font-family: var(--body);
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}

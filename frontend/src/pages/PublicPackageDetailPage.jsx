@@ -1,0 +1,5 @@
+import { Link, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../api/client";
+import { LoadingState } from "../components/LoadingState";
+export default function PublicPackageDetailPage() { const { packageId } = useParams(); const query = useQuery({ queryKey: ["package", packageId], queryFn: () => api.get(`/packages/${packageId}`) }); if (query.isLoading) return <LoadingState />; if (query.isError) return <section className="center-page"><h1>Không tìm thấy gói đọc</h1><Link className="button" to="/packages">Quay lại</Link></section>; const item = query.data; return <section className="detail-page"><Link className="back-link" to="/packages">← Các gói đọc</Link><p className="eyebrow">CHI TIẾT GÓI</p><h1>{item.name}</h1><p className="lead">{item.description}</p><div className="detail-meta"><span>Giá<strong>{new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(item.price)}</strong></span><span>Phản hồi dự kiến<strong>{item.expected_response_minutes} phút</strong></span></div><Link className="button" to={`/bookings/new?packageId=${item.id}`}>Chọn gói này</Link></section>; }
