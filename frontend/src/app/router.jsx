@@ -13,6 +13,11 @@ import AccountPage from "../pages/AccountPage";
 import MyBookingsPage from "../pages/customer/MyBookingsPage";
 import NewBookingPage from "../pages/customer/NewBookingPage";
 import BookingDetailPage from "../pages/customer/BookingDetailPage";
+
+// Import 2 trang thật của Reader
+import ReaderQueuePage from "../pages/reader/ReaderQueuePage";
+import ReaderBookingsPage from "../pages/reader/ReaderBookingsPage";
+
 import AppPlaceholder from "../pages/AppPlaceholder";
 import ForbiddenPage from "../pages/ForbiddenPage";
 import NotFoundPage from "../pages/NotFoundPage";
@@ -70,17 +75,11 @@ export const router = createBrowserRouter([
             children: [
               {
                 path: "/reader/queue",
-                element: placeholder(
-                  "Hàng đợi reader",
-                  "Các booking đang chờ được nhận."
-                ),
+                element: <ReaderQueuePage />,
               },
               {
                 path: "/reader/bookings",
-                element: placeholder(
-                  "Booking đang phụ trách",
-                  "Các phiên đọc bạn đang thực hiện."
-                ),
+                element: <ReaderBookingsPage />,
               },
             ],
           },

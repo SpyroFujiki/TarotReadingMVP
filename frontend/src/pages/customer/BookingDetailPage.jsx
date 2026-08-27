@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getBookingDetail } from "../../api/bookingApi";
+import { getBookingDetail, startBooking, completeBooking } from "../../api/bookingApi";
 import { getServiceMessages, sendServiceMessage } from "../../api/serviceMessageApi";
 import { getPackages } from "../../api/packageApi";
 import { useAuth } from "../../contexts/AuthContext";
 import { LoadingState } from "../../components/LoadingState";
 import { EmptyState } from "../../components/EmptyState";
 
-// Lấy danh sách ảnh lá bài từ assets
 const cardAssets = import.meta.glob("../../assets/*.{png,jpg,jpeg}", {
   eager: true,
   import: "default",
@@ -40,7 +39,7 @@ export default function BookingDetailPage() {
     queryKey: ["booking-detail", bookingId],
     queryFn: () => getBookingDetail(bookingId),
     enabled: !!bookingId,
-    refetchInterval: 4000,
+    refetchInterval: 3000,
   });
 
   // Lấy thông tin các gói bài
@@ -75,11 +74,32 @@ export default function BookingDetailPage() {
     },
   });
 
+  // Mutation bắt đầu trải bài (dành cho Reader)
+  const startMutation = useMutation({
+    mutationFn: () => startBooking(bookingId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["booking-detail", bookingId] });
+      queryClient.invalidateQueries({ queryKey: ["assigned-bookings"] });
+    },
+    onError: (err) => alert(err?.detail || err?.message || "Không thể bắt đầu phiên!"),
+  });
+
+  // Mutation hoàn thành phiên đọc (dành cho Reader)
+  const completeMutation = useMutation({
+    mutationFn: () => completeBooking(bookingId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["booking-detail", bookingId] });
+      queryClient.invalidateQueries({ queryKey: ["assigned-bookings"] });
+    },
+    onError: (err) => alert(err?.detail || err?.message || "Không thể hoàn thành phiên!"),
+  });
+
   if (isBookingLoading) return <LoadingState />;
   if (isBookingError || !booking) {
     return <EmptyState message="Không tìm thấy thông tin phiên trải bài này." />;
   }
 
+  const isReader = user?.role === "reader" || booking.reader_id === user?.id;
   const currentPkg = packages?.find((p) => p.id === booking.package_id);
   const pkgIndex = packages?.findIndex((p) => p.id === currentPkg?.id) ?? 0;
   const cardImg = tarotCards.length > 0 ? tarotCards[Math.max(0, pkgIndex) % tarotCards.length] : null;
@@ -114,7 +134,7 @@ export default function BookingDetailPage() {
       {/* Nút quay lại & Header */}
       <div style={{ marginBottom: "28px" }}>
         <button
-          onClick={() => navigate("/bookings")}
+          onClick={() => navigate(isReader ? "/reader/bookings" : "/bookings")}
           style={{
             background: "transparent",
             border: "none",
@@ -156,7 +176,8 @@ export default function BookingDetailPage() {
                 color: "#facc15",
                 margin: "4px 0 6px 0",
                 lineHeight: 1.15,
-                textShadow: "0 0 20px rgba(250, 204, 21, 0.3)",
+                fontWeight: "400",
+                letterSpacing: "1px",
               }}
             >
               {currentPkg?.name || "The Star"}
@@ -184,10 +205,10 @@ export default function BookingDetailPage() {
         </div>
       </div>
 
-      {/* Khung chính: 2 Cột Huyền Bí */}
+      {/* Khung chính: 2 Cột */}
       <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "28px", alignItems: "start" }}>
         
-        {/* CỘT TRÁI: THẺ THÔNG TIN GÓI DỊCH VỤ */}
+        {/* CỘT TRÁI: THẺ THÔNG TIN GÓI DỊCH VỤ & BẢNG ĐIỀU KHIỂN READER */}
         <div
           style={{
             background: "linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 0.95) 100%)",
@@ -229,7 +250,7 @@ export default function BookingDetailPage() {
 
           <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "14px" }}>
             <span style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "1px", color: "#94a3b8", fontWeight: "600", display: "block", marginBottom: "6px" }}>
-              Chủ đề & Câu hỏi của bạn
+              Chủ đề & Câu hỏi cần giải đáp
             </span>
             <div
               style={{
@@ -247,19 +268,86 @@ export default function BookingDetailPage() {
             </div>
           </div>
 
-          <div
-            style={{
-              background: "rgba(250, 204, 21, 0.05)",
-              border: "1px solid rgba(250, 204, 21, 0.15)",
-              borderRadius: "12px",
-              padding: "12px",
-              fontSize: "0.85rem",
-              color: "#cbd5e1",
-              lineHeight: "1.45",
-            }}
-          >
-            ✦ <strong>Lưu ý:</strong> Reader sẽ nhận đơn và phản hồi phân tích trực tiếp qua khung chat bên cạnh.
-          </div>
+          {/* BẢNG ĐIỀU KHIỂN DÀNH CHO READER */}
+          {isReader && (
+            <div
+              style={{
+                borderTop: "1px solid rgba(250, 204, 21, 0.2)",
+                paddingTop: "16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+              }}
+            >
+              <span style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "1px", color: "#facc15", fontWeight: "700" }}>
+                ✦ Thao tác Reader
+              </span>
+
+              {booking.status === "assigned" && (
+                <button
+                  onClick={() => startMutation.mutate()}
+                  disabled={startMutation.isPending}
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    backgroundColor: "#a855f7",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "10px",
+                    fontWeight: "700",
+                    fontSize: "0.92rem",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(168, 85, 247, 0.35)",
+                  }}
+                >
+                  {startMutation.isPending ? "Đang xử lý..." : "Bắt đầu trải bài 🔮"}
+                </button>
+              )}
+
+              {booking.status === "in_progress" && (
+                <button
+                  onClick={() => completeMutation.mutate()}
+                  disabled={completeMutation.isPending}
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    backgroundColor: "#16a34a",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "10px",
+                    fontWeight: "700",
+                    fontSize: "0.92rem",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(22, 163, 74, 0.35)",
+                  }}
+                >
+                  {completeMutation.isPending ? "Đang xử lý..." : "Hoàn thành phiên đọc ✓"}
+                </button>
+              )}
+
+              {booking.status === "completed" && (
+                <div style={{ textAlign: "center", color: "#4ade80", fontSize: "0.88rem", fontWeight: "600" }}>
+                  ✦ Phiên trải bài đã hoàn tất
+                </div>
+              )}
+            </div>
+          )}
+
+          {!isReader && (
+            <div
+              style={{
+                background: "rgba(250, 204, 21, 0.05)",
+                border: "1px solid rgba(250, 204, 21, 0.15)",
+                borderRadius: "12px",
+                padding: "12px",
+                fontSize: "0.85rem",
+                color: "#cbd5e1",
+                lineHeight: "1.45",
+              }}
+            >
+              ✦ <strong>Lưu ý:</strong> Reader sẽ gửi lời luận giải và hình ảnh trải bài trực tiếp qua khung chat bên cạnh.
+            </div>
+          )}
         </div>
 
         {/* CỘT PHẢI: PHÒNG CHAT TRẢI BÀI */}
@@ -288,11 +376,11 @@ export default function BookingDetailPage() {
             }}
           >
             <div>
-              <h3 className="font-tarot" style={{ fontSize: "1.5rem", color: "#facc15", margin: 0 }}>
+              <h3 className="font-tarot" style={{ fontSize: "1.5rem", color: "#facc15", margin: 0, fontWeight: "400" }}>
                 Hộp Thoại Tâm Linh 🔮
               </h3>
               <span style={{ fontSize: "0.82rem", color: "#94a3b8" }}>
-                Kênh đối thoại trực tiếp giữa bạn và Tarot Reader
+                Kênh đối thoại trực tiếp giữa Khách hàng và Tarot Reader
               </span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.82rem", color: "#4ade80" }}>
@@ -330,7 +418,9 @@ export default function BookingDetailPage() {
                   Chưa có thông điệp nào
                 </div>
                 <p style={{ fontSize: "0.88rem", color: "#64748b", margin: 0 }}>
-                  Bạn có thể gửi thêm chi tiết câu hỏi, hoặc chờ Reader tiếp nhận và gửi kết quả giải bài tại đây.
+                  {isReader
+                    ? "Hãy bắt đầu trải bài và gửi kết quả phân tích đầu tiên cho khách hàng."
+                    : "Bạn có thể gửi thêm chi tiết câu hỏi, hoặc chờ Reader tiếp nhận và gửi kết quả giải bài tại đây."}
                 </p>
               </div>
             ) : (
@@ -394,7 +484,7 @@ export default function BookingDetailPage() {
           <form onSubmit={handleSendMessage} style={{ display: "flex", gap: "12px", alignItems: "center" }}>
             <input
               type="text"
-              placeholder="Nhập câu hỏi hoặc phản hồi của bạn..."
+              placeholder={isReader ? "Nhập lời luận giải / câu trả lời cho khách..." : "Nhập câu hỏi hoặc phản hồi của bạn..."}
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               disabled={sendMessageMutation.isPending}
