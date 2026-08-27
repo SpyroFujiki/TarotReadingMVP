@@ -1,39 +1,54 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { api, authStorage } from "../api/client";
+import { createContext, useContext, useState, useEffect } from "react";
+import { login as loginApi, getMe as getMeApi } from "../api/authApi";
+import { authStorage } from "../api/client";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-	const [user, setUser] = useState(null);
-	const [loading, setLoading] = useState(Boolean(authStorage.getToken()));
+  const [user, setUser] = useState(() => authStorage.getUser());
+  const [loading, setLoading] = useState(true);
 
-	useEffect(() => {
-		if (!authStorage.getToken()) return;
-		api.get("/auth/me").then(setUser).catch(() => authStorage.clear()).finally(() => setLoading(false));
-	}, []);
+  // Tự động đồng bộ thông tin user khi load lại trang nếu có token
+  useEffect(() => {
+    async function loadUser() {
+      const token = authStorage.getToken();
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const currentUser = await getMeApi();
+        setUser(currentUser);
+        authStorage.setUser(currentUser);
+      } catch (err) {
+        authStorage.clear();
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadUser();
+  }, []);
 
-	const signIn = async (credentials) => {
-		const result = await api.post("/auth/login", credentials);
-		authStorage.setToken(result.access_token);
-		setUser(result.user);
-		return result.user;
-	};
+  const signIn = async ({ email, password }) => {
+    const res = await loginApi({ email, password });
+    // Backend trả về: { access_token: "...", user: { id, email, full_name, role, status } }
+    authStorage.setToken(res.access_token);
+    authStorage.setUser(res.user);
+    setUser(res.user);
+    return res.user;
+  };
 
-	const signUp = async (details) => {
-		const result = await api.post("/auth/register", details);
-		authStorage.setToken(result.access_token);
-		setUser(result.user);
-		return result.user;
-	};
+  const signOut = () => {
+    authStorage.clear();
+    setUser(null);
+  };
 
-	const signOut = () => {
-		authStorage.clear();
-		setUser(null);
-	};
-
-	return <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, signIn, signOut, loading, isAuthenticated: !!user }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
-export function useAuth() {
-	return useContext(AuthContext);
-}
+export const useAuth = () => useContext(AuthContext);

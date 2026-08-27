@@ -6,129 +6,187 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
+
     try {
-      setError("");
-      await signIn({ email, password });
-      navigate("/");
+      const loggedUser = await signIn({ email, password });
+
+      // Điều hướng thông minh dựa trên Role thực tế trả về từ PostgreSQL
+      if (loggedUser?.role === "admin") {
+        navigate("/admin");
+      } else if (loggedUser?.role === "reader") {
+        navigate("/reader/queue");
+      } else {
+        navigate("/packages");
+      }
     } catch (err) {
-      setError(err.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.");
+      setError(
+        err?.detail || 
+        err?.message || 
+        "Email hoặc mật khẩu không chính xác."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
+  const inputStyle = {
+    width: "100%",
+    padding: "12px 16px",
+    borderRadius: "10px",
+    border: "1px solid #d1d5db",
+    backgroundColor: "#ffffff",
+    color: "#111827",
+    fontSize: "0.95rem",
+    outline: "none",
+    boxSizing: "border-box",
+    transition: "border-color 0.2s ease",
+  };
+
+  const labelStyle = {
+    display: "block",
+    fontSize: "0.88rem",
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: "6px",
+  };
+
   return (
-    <div style={{ backgroundColor: "#001f3f", minHeight: "calc(100vh - 80px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
-      
-      {/* Khung Card bo tròn lớn giống ảnh mẫu */}
-      <div style={{
-        backgroundColor: "#ffffff",
-        color: "#1a1a1a",
-        width: "100%",
-        maxWidth: "480px",
-        borderRadius: "32px",
-        padding: "50px 40px",
-        boxShadow: "0 25px 50px rgba(0,0,0,0.3)",
-        textAlign: "center"
-      }}>
-        
-        <div style={{ fontSize: "0.8rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#777777", marginBottom: "10px", fontWeight: "600" }}>
-          Lá bài vũ trụ
+    <div
+      style={{
+        backgroundColor: "#001f3f",
+        minHeight: "calc(100vh - 80px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "40px 20px",
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          borderRadius: "24px",
+          padding: "40px 32px",
+          width: "100%",
+          maxWidth: "420px",
+          boxShadow: "0 20px 40px rgba(0, 0, 0, 0.35)",
+          textAlign: "left",
+        }}
+      >
+        <div style={{ textAlign: "center", marginBottom: "28px" }}>
+          <span
+            style={{
+              fontSize: "0.8rem",
+              textTransform: "uppercase",
+              letterSpacing: "2px",
+              color: "#6b7280",
+              fontWeight: "600",
+            }}
+          >
+            Chào mừng trở lại
+          </span>
+          <h1
+            className="font-tarot"
+            style={{ fontSize: "2.2rem", color: "#001f3f", margin: "8px 0 0 0" }}
+          >
+            Đăng Nhập
+          </h1>
         </div>
-        
-        <h1 className="font-tarot" style={{ fontSize: "2.5rem", fontWeight: "normal", color: "#1a1a1a", marginBottom: "10px" }}>
-          Welcome back
-        </h1>
-        <p style={{ color: "#666666", fontSize: "0.95rem", marginBottom: "35px" }}>
-          Đăng nhập để tiếp tục hành trình khám phá của bạn.
-        </p>
 
         {error && (
-          <div style={{ backgroundColor: "#ffebee", color: "#c62828", padding: "12px", borderRadius: "10px", fontSize: "0.9rem", marginBottom: "20px" }}>
+          <div
+            style={{
+              backgroundColor: "#fee2e2",
+              color: "#b91c1c",
+              padding: "12px 14px",
+              borderRadius: "8px",
+              fontSize: "0.88rem",
+              marginBottom: "20px",
+              lineHeight: "1.4",
+              border: "1px solid #f87171",
+            }}
+          >
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px", textAlign: "left" }}>
-          <div>
-            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", color: "#444444", marginBottom: "8px" }}>Email</label>
-            <input 
-              type="email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: "16px" }}>
+            <label style={labelStyle}>Email</label>
+            <input
+              type="email"
               placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
-              style={{
-                width: "100%",
-                padding: "14px 18px",
-                borderRadius: "14px",
-                border: "1px solid #dddddd",
-                backgroundColor: "#fafafa",
-                fontSize: "1rem",
-                outline: "none",
-                transition: "border-color 0.2s"
-              }}
-              onFocus={(e) => e.target.style.borderColor = "#1a1a1a"}
-              onBlur={(e) => e.target.style.borderColor = "#dddddd"}
+              disabled={loading}
+              style={inputStyle}
             />
           </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", color: "#444444", marginBottom: "8px" }}>Mật khẩu</label>
-            <input 
-              type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
+          <div style={{ marginBottom: "24px" }}>
+            <label style={labelStyle}>Mật khẩu</label>
+            <input
+              type="password"
               placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               required
-              style={{
-                width: "100%",
-                padding: "14px 18px",
-                borderRadius: "14px",
-                border: "1px solid #dddddd",
-                backgroundColor: "#fafafa",
-                fontSize: "1rem",
-                outline: "none",
-                transition: "border-color 0.2s"
-              }}
-              onFocus={(e) => e.target.style.borderColor = "#1a1a1a"}
-              onBlur={(e) => e.target.style.borderColor = "#dddddd"}
+              disabled={loading}
+              style={inputStyle}
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
+            disabled={loading}
             style={{
-              marginTop: "10px",
               width: "100%",
-              padding: "15px",
-              backgroundColor: "#1a1a1a",
-              color: "#ffffff",
-              borderRadius: "14px",
+              padding: "14px",
+              backgroundColor: "#111827",
+              color: "#ffd700",
               border: "none",
-              fontSize: "1rem",
-              fontWeight: "600",
-              cursor: "pointer",
-              boxShadow: "0 10px 20px rgba(0,0,0,0.15)",
-              transition: "opacity 0.2s"
+              borderRadius: "10px",
+              fontSize: "0.95rem",
+              fontWeight: "700",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1,
+              transition: "all 0.2s ease",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
             }}
-            onMouseEnter={(e) => e.target.style.opacity = "0.9"}
-            onMouseLeave={(e) => e.target.style.opacity = "1"}
           >
-            Đăng nhập ✦
+            {loading ? "Đang xác thực..." : "Đăng nhập ✦"}
           </button>
         </form>
 
-        <div style={{ marginTop: "30px", fontSize: "0.95rem", color: "#666666" }}>
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "24px",
+            fontSize: "0.9rem",
+            color: "#4b5563",
+          }}
+        >
           Chưa có tài khoản?{" "}
-          <Link to="/register" style={{ color: "#1a1a1a", fontWeight: "bold", textDecoration: "underline" }}>
+          <Link
+            to="/register"
+            style={{
+              color: "#001f3f",
+              fontWeight: "700",
+              textDecoration: "underline",
+            }}
+          >
             Đăng ký ngay
           </Link>
         </div>
-
       </div>
     </div>
   );

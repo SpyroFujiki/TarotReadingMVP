@@ -13,7 +13,7 @@ const cardAssets = import.meta.glob("../../assets/*.{png,jpg,jpeg}", {
 });
 
 const tarotCards = Object.entries(cardAssets)
-  .filter(([path]) => /(?:The|Cups|Wands|Swords|Pentacles)/.test(path)) // Đã sửa đúng cú pháp filter chuẩn
+  .filter(([path]) => /(?:The|Cups|Wands|Swords|Pentacles)/.test(path))
   .map(([, source]) => source);
 
 const getMultipleCards = (startIndex) => {
@@ -79,29 +79,68 @@ export default function PackagesPage() {
   if (packages.length === 0) return <EmptyState message="Hiện chưa có gói dịch vụ nào." />;
 
   return (
-    <div style={{ backgroundColor: "#001f3f", minHeight: "100vh", color: "#f4f4f4", paddingBottom: "120px", position: "relative", overflowX: "hidden" }}>
+    <div style={{ maxWidth: "1300px", margin: "24px auto 60px", padding: "0 20px" }}>
       
-      {/* Hiệu ứng ánh sáng nền */}
-      <div style={{ position: "absolute", top: "0", left: "50%", transform: "translateX(-50%)", width: "800px", height: "400px", background: "radial-gradient(circle, rgba(255,215,0,0.06) 0%, rgba(0,31,63,0) 70%)", pointerEvents: "none" }}></div>
+      {/* Ẩn triệt để thanh cuộn của modal */}
+      <style>{`
+        .hide-modal-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-modal-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
 
-      {/* HEADER SECTION */}
-      <div style={{ textAlign: "center", padding: "60px 20px 40px", maxWidth: "800px", margin: "0 auto", position: "relative", zIndex: "1" }}>
-        <h1 className="font-tarot" style={{ fontSize: "clamp(2.5rem, 4.5vw, 3.5rem)", fontWeight: "normal", color: "#ffffff", marginBottom: "15px", letterSpacing: "-1px" }}>
-          Chọn Gói Trải Bài Của Bạn
-        </h1>
-        <p style={{ fontSize: "1rem", color: "#cccccc", lineHeight: "1.6", maxWidth: "550px", margin: "0 auto" }}>
-          Mỗi tụ bài là một cánh cửa mở ra sự thật. Hãy lựa chọn gói dịch vụ phù hợp để lắng nghe chỉ dẫn từ các Reader.
-        </p>
-      </div>
+      {/* KHUNG KÍNH BO GÓC DUY NHẤT */}
+      <div
+        style={{
+          background: "rgba(255, 255, 255, 0.03)",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          borderRadius: "24px",
+          padding: "50px 36px 60px",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          textAlign: "center",
+        }}
+      >
+        {/* HEADER SECTION */}
+        <div style={{ marginBottom: "40px" }}>
+          <h1
+            className="font-tarot"
+            style={{
+              fontSize: "3.2rem",
+              color: "#ffffff",
+              margin: "0 0 12px 0",
+              lineHeight: 1.15,
+              fontWeight: "400",
+              letterSpacing: "1px",
+            }}
+          >
+            Chọn Gói Trải Bài Của Bạn
+          </h1>
+          <p
+            style={{
+              color: "#cbd5e1",
+              fontSize: "0.95rem",
+              maxWidth: "580px",
+              margin: "0 auto",
+              lineHeight: 1.6,
+            }}
+          >
+            Mỗi tụ bài là một cánh cửa mở ra sự thật. Hãy lựa chọn gói dịch vụ phù hợp để lắng nghe chỉ dẫn từ các Reader.
+          </p>
+        </div>
 
-      {/* CONTAINER CHỨA CÁC THẺ CARD */}
-      <div style={{ maxWidth: "1250px", margin: "0 auto", padding: "0 25px", position: "relative", zIndex: "1" }}>
-        <div style={{ 
-          display: "grid", 
-          gridTemplateColumns: "repeat(3, 1fr)", 
-          gap: "30px",
-          alignItems: "stretch" 
-        }}>
+        {/* LƯỚI 3 CỘT CARD BÊN TRONG */}
+        <div
+          style={{ 
+            display: "grid", 
+            gridTemplateColumns: "repeat(3, 1fr)", 
+            gap: "26px",
+            alignItems: "stretch" 
+          }}
+        >
           {packages.map((pkg) => {
             const isHovered = hoveredId === pkg.id;
             const cards = getMultipleCards(pkg.cardIndex || 0);
@@ -112,32 +151,43 @@ export default function PackagesPage() {
                 onMouseEnter={() => setHoveredId(pkg.id)}
                 onMouseLeave={() => setHoveredId(null)}
                 style={{
-                  backgroundColor: "rgba(255, 255, 255, 0.06)",
-                  backdropFilter: "blur(12px)",
-                  border: "1px solid rgba(255, 215, 0, 0.25)",
+                  backgroundColor: "rgba(255, 255, 255, 0.03)",
+                  border: isHovered ? "1px solid rgba(255, 215, 0, 0.7)" : "1px solid rgba(255, 255, 255, 0.1)",
                   borderRadius: "20px",
-                  padding: "35px 24px 30px 24px",
+                  padding: "34px 24px 28px",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
                   textAlign: "center",
-                  boxShadow: "0 15px 35px rgba(0, 0, 0, 0.3)",
-                  transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-                  transform: isHovered ? "translateY(-6px)" : "translateY(0)",
-                  borderColor: isHovered ? "rgba(255, 215, 0, 0.7)" : "rgba(255, 215, 0, 0.25)",
+                  backdropFilter: "blur(6px)",
+                  WebkitBackdropFilter: "blur(6px)",
+                  transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+                  transform: isHovered ? "translateY(-5px)" : "translateY(0)",
                 }}
               >
-                
-                {/* KHUNG LÁ BÀI (Hiệu ứng xòe khi hover) */}
-                <div style={{ height: "150px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "20px", position: "relative" }}>
+                {/* BẤM VÀO HÌNH ĐỂ MỞ MODAL */}
+                <div 
+                  onClick={() => setSelectedPackage(pkg)}
+                  title="Nhấp vào hình để xem chi tiết gói bài"
+                  style={{ 
+                    height: "155px", 
+                    width: "100%", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center", 
+                    marginBottom: "20px", 
+                    position: "relative",
+                    cursor: "pointer" 
+                  }}
+                >
                   <img 
                     src={cards[1]} 
                     alt="tarot secondary" 
                     style={{ 
-                      height: "125px", objectFit: "contain", position: "absolute",
+                      height: "130px", objectFit: "contain", position: "absolute",
                       filter: "drop-shadow(0 8px 12px rgba(0,0,0,0.5))",
                       transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-                      transform: isHovered ? "translateX(-32px) rotate(-10deg) scale(0.95)" : "translateX(0px) rotate(0deg) scale(0.75)",
+                      transform: isHovered ? "translateX(-34px) rotate(-10deg) scale(0.95)" : "translateX(0px) rotate(0deg) scale(0.75)",
                       opacity: isHovered ? 0.9 : 0, zIndex: 1
                     }} 
                   />
@@ -145,10 +195,10 @@ export default function PackagesPage() {
                     src={cards[0]} 
                     alt={pkg.name} 
                     style={{ 
-                      height: "135px", objectFit: "contain", position: "relative",
+                      height: "140px", objectFit: "contain", position: "relative",
                       filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.5))",
                       transition: "transform 0.4s ease",
-                      transform: isHovered ? "scale(1.04)" : "scale(1)",
+                      transform: isHovered ? "scale(1.05)" : "scale(1)",
                       zIndex: 2
                     }} 
                   />
@@ -156,28 +206,28 @@ export default function PackagesPage() {
                     src={cards[2]} 
                     alt="tarot secondary" 
                     style={{ 
-                      height: "125px", objectFit: "contain", position: "absolute",
+                      height: "130px", objectFit: "contain", position: "absolute",
                       filter: "drop-shadow(0 8px 12px rgba(0,0,0,0.5))",
                       transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-                      transform: isHovered ? "translateX(32px) rotate(10deg) scale(0.95)" : "translateX(0px) rotate(0deg) scale(0.75)",
+                      transform: isHovered ? "translateX(34px) rotate(10deg) scale(0.95)" : "translateX(0px) rotate(0deg) scale(0.75)",
                       opacity: isHovered ? 0.9 : 0, zIndex: 1
                     }} 
                   />
                 </div>
                 
-                <h2 className="font-tarot" style={{ fontSize: "1.6rem", fontWeight: "normal", color: "#ffd700", marginBottom: "12px", letterSpacing: "-0.5px" }}>
+                <h2 className="font-tarot" style={{ fontSize: "1.55rem", fontWeight: "normal", color: "#ffd700", marginBottom: "12px", letterSpacing: "-0.5px" }}>
                   {pkg.name}
                 </h2>
                 
-                <p style={{ color: "#cccccc", fontSize: "0.9rem", lineHeight: "1.6", marginBottom: "25px", flexGrow: 1 }}>
+                <p style={{ color: "#cccccc", fontSize: "0.88rem", lineHeight: "1.6", marginBottom: "24px", flexGrow: 1, textAlign: "justify" }}>
                   {pkg.description}
                 </p>
                 
-                <div style={{ width: "100%", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "16px", marginBottom: "20px" }}>
-                  <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#ffffff", marginBottom: "6px" }}>
+                <div style={{ width: "100%", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "16px", marginBottom: "20px" }}>
+                  <div className="font-tarot" style={{ fontSize: "1.65rem", fontWeight: "normal", color: "#ffffff", marginBottom: "4px" }}>
                     {money.format(pkg.price)}
                   </div>
-                  <div style={{ fontSize: "0.8rem", color: "#888888", fontWeight: "500", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  <div style={{ fontSize: "0.74rem", color: "#888888", fontWeight: "500", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     Nhận kết quả trong: {pkg.expected_response_time || `${pkg.expected_response_minutes} phút`}
                   </div>
                 </div>
@@ -188,13 +238,13 @@ export default function PackagesPage() {
                     onClick={() => setSelectedPackage(pkg)}
                     style={{ 
                       flex: 1, 
-                      padding: "12px 10px", 
+                      padding: "10px", 
                       backgroundColor: "transparent",
-                      border: "1px solid rgba(255, 215, 0, 0.6)", 
+                      border: "1px solid rgba(255, 215, 0, 0.5)", 
                       color: "#ffd700", 
-                      borderRadius: "10px", 
+                      borderRadius: "8px", 
                       fontWeight: "500", 
-                      fontSize: "0.9rem",
+                      fontSize: "0.88rem",
                       cursor: "pointer",
                       transition: "all 0.2s ease"
                     }}
@@ -205,13 +255,13 @@ export default function PackagesPage() {
                     to={`/bookings/new?packageId=${pkg.id}`} 
                     style={{ 
                       flex: 1, 
-                      padding: "12px 10px", 
+                      padding: "10px", 
                       backgroundColor: "#ffd700", 
                       color: "#001f3f", 
-                      borderRadius: "10px", 
+                      borderRadius: "8px", 
                       textDecoration: "none", 
                       fontWeight: "700", 
-                      fontSize: "0.9rem",
+                      fontSize: "0.88rem",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -228,123 +278,143 @@ export default function PackagesPage() {
         </div>
       </div>
 
-      {/* MODAL CHI TIẾT */}
+      {/* MODAL CHI TIẾT ĐÃ DESIGN GIỐNG ẢNH 1, NÚT X ĐẨY LÊN CAO, KHÔNG CÒN SCROLLBAR */}
       {selectedPackage && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
-          backgroundColor: "rgba(0, 0, 0, 0.75)",
-          backdropFilter: "blur(8px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 9999,
-          padding: "20px"
-        }}>
-          <div style={{
-            backgroundColor: "#f4f4f4",
-            color: "#1a1a1a",
-            width: "100%",
-            maxWidth: "600px",
-            maxHeight: "90vh",
-            borderRadius: "28px",
-            padding: "40px",
-            position: "relative",
-            overflowY: "auto",
-            boxShadow: "0 25px 50px rgba(0,0,0,0.5)"
-          }}>
-            
+        <div 
+          onClick={() => setSelectedPackage(null)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0, 0, 0, 0.65)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "20px"
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="hide-modal-scrollbar"
+            style={{
+              backgroundColor: "#ececed",
+              color: "#1a1a1a",
+              width: "100%",
+              maxWidth: "540px",
+              maxHeight: "88vh",
+              borderRadius: "36px",
+              padding: "36px 36px 32px",
+              position: "relative",
+              overflowY: "auto",
+              boxShadow: "0 25px 50px rgba(0, 0, 0, 0.45)",
+            }}
+          >
+            {/* Nút X đóng Modal ở góc cao thoáng mắt */}
             <button 
               onClick={() => setSelectedPackage(null)}
               style={{
                 position: "absolute",
-                top: "25px",
-                right: "25px",
+                top: "20px",
+                right: "24px",
                 background: "none",
                 border: "none",
-                fontSize: "1.5rem",
+                fontSize: "1.4rem",
                 cursor: "pointer",
-                color: "#1a1a1a",
-                fontWeight: "300"
+                color: "#555555",
+                fontWeight: "300",
+                lineHeight: "1",
+                padding: "4px",
+                transition: "color 0.2s ease"
               }}
+              onMouseEnter={(e) => e.currentTarget.style.color = "#000000"}
+              onMouseLeave={(e) => e.currentTarget.style.color = "#555555"}
             >
               ✕
             </button>
 
-            <div style={{ textAlign: "center", fontSize: "0.85rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "20px" }}>
+            {/* Tagline phía trên */}
+            <div style={{ textAlign: "center", fontSize: "0.78rem", color: "#666666", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "18px", padding: "0 20px" }}>
               {selectedPackage.tagline}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "25px" }}>
+            {/* Ảnh lá bài trung tâm */}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
               <img 
                 src={getMultipleCards(selectedPackage.cardIndex || 0)[0]} 
                 alt={selectedPackage.name} 
-                style={{ height: "240px", objectFit: "contain", filter: "drop-shadow(0 15px 25px rgba(0,0,0,0.2))" }} 
+                style={{ height: "215px", objectFit: "contain", borderRadius: "10px", filter: "drop-shadow(0 12px 20px rgba(0,0,0,0.18))" }} 
               />
             </div>
 
-            <h2 className="font-tarot" style={{ textAlign: "center", fontSize: "2.2rem", fontWeight: "normal", color: "#1a1a1a", marginBottom: "15px" }}>
+            {/* Tên Gói */}
+            <h2 className="font-tarot" style={{ textAlign: "center", fontSize: "2rem", fontWeight: "normal", color: "#111827", margin: "0 0 16px 0", lineHeight: "1.2" }}>
               {selectedPackage.name}
             </h2>
 
+            {/* Hộp mô tả xám nhạt */}
             <div style={{
-              backgroundColor: "#eaeaea",
+              backgroundColor: "#dfdfdf",
               borderRadius: "16px",
-              padding: "20px",
-              fontSize: "0.95rem",
+              padding: "18px 20px",
+              fontSize: "0.92rem",
               lineHeight: "1.6",
-              color: "#333",
+              color: "#2b2b2b",
               textAlign: "center",
-              marginBottom: "30px"
+              marginBottom: "24px"
             }}>
               {selectedPackage.description}
             </div>
 
-            <div style={{ marginBottom: "25px" }}>
-              <h3 className="font-tarot" style={{ fontSize: "1.4rem", fontWeight: "normal", marginBottom: "8px", color: "#1a1a1a" }}>
+            {/* Mục Năng lượng */}
+            <div style={{ marginBottom: "20px" }}>
+              <h3 className="font-tarot" style={{ fontSize: "1.35rem", fontWeight: "normal", marginBottom: "6px", color: "#111827" }}>
                 Năng lượng
               </h3>
-              <p style={{ fontSize: "0.95rem", color: "#555", lineHeight: "1.6" }}>
+              <p style={{ fontSize: "0.92rem", color: "#4b5563", lineHeight: "1.6", margin: 0 }}>
                 {selectedPackage.energyText}
               </p>
             </div>
 
-            <div style={{ marginBottom: "35px" }}>
-              <h3 className="font-tarot" style={{ fontSize: "1.4rem", fontWeight: "normal", marginBottom: "8px", color: "#1a1a1a" }}>
+            {/* Mục Hành động */}
+            <div style={{ marginBottom: "30px" }}>
+              <h3 className="font-tarot" style={{ fontSize: "1.35rem", fontWeight: "normal", marginBottom: "6px", color: "#111827" }}>
                 Hành động
               </h3>
-              <p style={{ fontSize: "0.95rem", color: "#555", lineHeight: "1.6" }}>
+              <p style={{ fontSize: "0.92rem", color: "#4b5563", lineHeight: "1.6", margin: 0 }}>
                 {selectedPackage.actionText}
               </p>
             </div>
 
+            {/* Chân Modal: Phí & Nút Đặt Lịch */}
             <div style={{ 
               display: "flex", 
               alignItems: "center", 
               justifyContent: "space-between", 
-              borderTop: "1px solid #ddd", 
-              paddingTop: "20px" 
+              borderTop: "1px solid #d1d5db", 
+              paddingTop: "18px" 
             }}>
               <div>
-                <div style={{ fontSize: "0.8rem", color: "#777", textTransform: "uppercase" }}>Mức phí đầu tư</div>
-                <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#1a1a1a" }}>
+                <div style={{ fontSize: "0.75rem", color: "#6b7280", textTransform: "uppercase", fontWeight: "600" }}>Mức phí đầu tư</div>
+                <div style={{ fontSize: "1.45rem", fontWeight: "700", color: "#111827" }}>
                   {money.format(selectedPackage.price)}
                 </div>
               </div>
               <Link 
                 to={`/bookings/new?packageId=${selectedPackage.id}`} 
                 style={{ 
-                  backgroundColor: "#1a1a1a", 
-                  color: "#ffffff", 
-                  padding: "14px 28px", 
+                  backgroundColor: "#001f3f", 
+                  color: "#ffd700", 
+                  padding: "12px 24px", 
                   borderRadius: "12px", 
                   textDecoration: "none", 
-                  fontWeight: "600", 
-                  fontSize: "1rem",
-                  boxShadow: "0 10px 20px rgba(0,0,0,0.15)"
+                  fontWeight: "700", 
+                  fontSize: "0.95rem",
+                  boxShadow: "0 8px 18px rgba(0, 31, 63, 0.25)"
                 }}
               >
                 Chọn gói này ✦
