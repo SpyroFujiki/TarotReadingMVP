@@ -22,13 +22,12 @@ import DisputeDetailPage from "../pages/customer/DisputeDetailPage";
 import ReaderQueuePage from "../pages/reader/ReaderQueuePage";
 import ReaderBookingsPage from "../pages/reader/ReaderBookingsPage";
 
-import AppPlaceholder from "../pages/AppPlaceholder";
 import ForbiddenPage from "../pages/ForbiddenPage";
 import NotFoundPage from "../pages/NotFoundPage";
-
-const placeholder = (title, description, action, to) => (
-  <AppPlaceholder title={title} description={description} action={action} to={to} />
-);
+import AdminDisputesPage from "../pages/admin/AdminDisputesPage";
+import AdminDisputeDetailPage from "../pages/admin/AdminDisputeDetailPage";
+import AdminUsersPage from "../pages/admin/AdminUsersPage";
+import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage";
 
 export const router = createBrowserRouter([
   {
@@ -89,31 +88,19 @@ export const router = createBrowserRouter([
             children: [
               {
                 path: "/admin/disputes",
-                element: placeholder(
-                  "Hàng đợi khiếu nại",
-                  "Xem xét các khiếu nại đang mở."
-                ),
+                element: <AdminDisputesPage />,
               },
               {
                 path: "/admin/disputes/:disputeId",
-                element: placeholder(
-                  "Xử lý khiếu nại",
-                  "Trao đổi, nhận và giải quyết khiếu nại."
-                ),
+                element: <AdminDisputeDetailPage />,
               },
               {
                 path: "/admin/users",
-                element: placeholder(
-                  "Quản lý người dùng",
-                  "Theo dõi vai trò và trạng thái tài khoản."
-                ),
+                element: <AdminUsersPage />,
               },
               {
                 path: "/admin/audit-logs",
-                element: placeholder(
-                  "Nhật ký quản trị",
-                  "Lịch sử các thao tác quản trị trong hệ thống."
-                ),
+                element: <AdminAuditLogsPage />,
               },
             ],
           },

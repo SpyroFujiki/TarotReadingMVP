@@ -23,12 +23,21 @@ const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND
 
 const parseApiError = (err) => {
   const detail = err?.detail || err?.response?.data?.detail;
-  if (typeof detail === "string") return detail;
+  const translateValidationMessage = (message) => {
+    if (/at least 10 characters/i.test(message)) {
+      return "Mô tả khiếu nại cần có ít nhất 10 ký tự.";
+    }
+    if (/at most 2000 characters/i.test(message)) {
+      return "Mô tả khiếu nại không được vượt quá 2000 ký tự.";
+    }
+    return message;
+  };
+  if (typeof detail === "string") return translateValidationMessage(detail);
   if (Array.isArray(detail) && detail.length > 0) {
-    return detail[0]?.msg || JSON.stringify(detail[0]);
+    return translateValidationMessage(detail[0]?.msg || JSON.stringify(detail[0]));
   }
   if (typeof detail === "object" && detail !== null) {
-    return detail?.msg || JSON.stringify(detail);
+    return translateValidationMessage(detail?.msg || JSON.stringify(detail));
   }
   return err?.message || "Đã xảy ra lỗi, vui lòng thử lại.";
 };
@@ -163,10 +172,20 @@ export default function BookingDetailPage() {
 
   const handleSubmitDispute = (e) => {
     e.preventDefault();
-    if (!description.trim() || disputeMutation.isPending) return;
+    const trimmedDescription = description.trim();
+    if (disputeMutation.isPending) return;
+    if (trimmedDescription.length < 10) {
+      setDisputeError("Mô tả khiếu nại cần có ít nhất 10 ký tự.");
+      return;
+    }
+    if (trimmedDescription.length > 2000) {
+      setDisputeError("Mô tả khiếu nại không được vượt quá 2000 ký tự.");
+      return;
+    }
+    setDisputeError("");
     disputeMutation.mutate({
       reason_category: reasonCategory,
-      description: description.trim(),
+      description: trimmedDescription,
     });
   };
 
@@ -266,203 +285,13 @@ export default function BookingDetailPage() {
       </div>
 
       {/* 2 Cột */}
-      <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "28px", alignItems: "start" }}>
+      <div className="booking-detail-layout" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "28px", alignItems: "start" }}>
         
         {/* CỘT TRÁI */}
-        <div
-          style={{
-            background: "linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 0.95) 100%)",
-            border: "1px solid rgba(250, 204, 21, 0.25)",
-            borderRadius: "20px",
-            padding: "26px",
-            boxShadow: "0 12px 30px rgba(0, 0, 0, 0.5)",
-            backdropFilter: "blur(12px)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "20px",
-          }}
-        >
-          {cardImg && (
-            <div style={{ textAlign: "center" }}>
-              <img
-                src={cardImg}
-                alt="Tarot Card"
-                style={{
-                  width: "120px",
-                  height: "190px",
-                  objectFit: "contain",
-                  borderRadius: "10px",
-                  border: "2px solid #facc15",
-                  boxShadow: "0 8px 24px rgba(250, 204, 21, 0.25)",
-                }}
-              />
-            </div>
-          )}
-
-          <div>
-            <span style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "1px", color: "#94a3b8", fontWeight: "600" }}>
-              Mức phí dịch vụ
-            </span>
-            <div className="font-tarot" style={{ fontSize: "1.8rem", color: "#facc15", fontWeight: "700", marginTop: "2px" }}>
-              {money.format(currentPkg?.price || 0)}
-            </div>
-          </div>
-
-          <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "14px" }}>
-            <span style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "1px", color: "#94a3b8", fontWeight: "600", display: "block", marginBottom: "6px" }}>
-              Chủ đề & Câu hỏi cần giải đáp
-            </span>
-            <div
-              style={{
-                background: "rgba(255, 255, 255, 0.04)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                borderRadius: "12px",
-                padding: "12px 16px",
-                color: "#f1f5f9",
-                fontSize: "0.95rem",
-                lineHeight: "1.5",
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {booking.topic}
-            </div>
-          </div>
-
-          {/* Reader Actions */}
-          {isReader && (
-            <div style={{ borderTop: "1px solid rgba(250, 204, 21, 0.2)", paddingTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
-              <span style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "1px", color: "#facc15", fontWeight: "700" }}>
-                ✦ Thao tác Reader
-              </span>
-
-              {booking.status === "assigned" && (
-                <button
-                  onClick={() => startMutation.mutate()}
-                  disabled={startMutation.isPending}
-                  style={{
-                    width: "100%",
-                    padding: "12px",
-                    backgroundColor: "#a855f7",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "10px",
-                    fontWeight: "700",
-                    fontSize: "0.92rem",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 14px rgba(168, 85, 247, 0.35)",
-                  }}
-                >
-                  {startMutation.isPending ? "Đang xử lý..." : "Bắt đầu trải bài 🔮"}
-                </button>
-              )}
-
-              {booking.status === "in_progress" && (
-                <button
-                  onClick={() => completeMutation.mutate()}
-                  disabled={completeMutation.isPending}
-                  style={{
-                    width: "100%",
-                    padding: "12px",
-                    backgroundColor: "#16a34a",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "10px",
-                    fontWeight: "700",
-                    fontSize: "0.92rem",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 14px rgba(22, 163, 74, 0.35)",
-                  }}
-                >
-                  {completeMutation.isPending ? "Đang xử lý..." : "Hoàn thành phiên đọc ✓"}
-                </button>
-              )}
-
-              {booking.status === "completed" && (
-                <div style={{ textAlign: "center", color: "#4ade80", fontSize: "0.88rem", fontWeight: "600" }}>
-                  ✦ Phiên trải bài đã hoàn tất
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Đang Khiếu Nại -> Nút Chuyển Nhanh Tới Phòng Xử Lý */}
-          {isDisputing && (
-            <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "14px" }}>
-              <button
-                onClick={() => {
-                  if (relatedDispute?.id) {
-                    navigate(`/disputes/${relatedDispute.id}`);
-                  } else {
-                    navigate("/disputes");
-                  }
-                }}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  backgroundColor: "rgba(239, 68, 68, 0.15)",
-                  color: "#fca5a5",
-                  border: "1px solid #ef4444",
-                  borderRadius: "10px",
-                  fontSize: "0.9rem",
-                  fontWeight: "700",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                }}
-              >
-                ⚖️ Xem tiến trình khiếu nại →
-              </button>
-            </div>
-          )}
-
-          {/* Nút Mở Khiếu Nại cho Customer khi đã Completed */}
-          {isCustomer && isCompleted && (
-            <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "14px" }}>
-              <button
-                onClick={handleOpenDisputeModal}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  backgroundColor: "rgba(239, 68, 68, 0.12)",
-                  color: "#f87171",
-                  border: "1px solid rgba(239, 68, 68, 0.5)",
-                  borderRadius: "10px",
-                  fontSize: "0.9rem",
-                  fontWeight: "700",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                }}
-              >
-                ⚠ Yêu cầu Khiếu nại đơn này
-              </button>
-            </div>
-          )}
-
-          {/* Lưu ý */}
-          {isCustomer && !isCompleted && !isDisputing && (
-            <div
-              style={{
-                background: "rgba(250, 204, 21, 0.05)",
-                border: "1px solid rgba(250, 204, 21, 0.15)",
-                borderRadius: "12px",
-                padding: "12px",
-                fontSize: "0.85rem",
-                color: "#cbd5e1",
-                lineHeight: "1.45",
-              }}
-            >
-              ✦ <strong>Lưu ý:</strong> Reader sẽ gửi lời luận giải và hình ảnh trải bài trực tiếp qua khung chat bên cạnh.
-            </div>
-          )}
-        </div>
 
         {/* CỘT PHẢI: CHAT */}
         <div
+          className="booking-chat-panel"
           style={{
             background: "linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(2, 6, 23, 0.95) 100%)",
             border: "1px solid rgba(250, 204, 21, 0.25)",
@@ -614,6 +443,35 @@ export default function BookingDetailPage() {
         </div>
       </div>
 
+      <div className="booking-actions-below-chat">
+        {isReader && (
+          <div className="booking-action-group">
+            <span className="booking-action-label">✦ Thao tác Reader</span>
+            {booking.status === "assigned" && (
+              <button className="booking-action-button reader-start" onClick={() => startMutation.mutate()} disabled={startMutation.isPending}>
+                {startMutation.isPending ? "Đang xử lý..." : "Bắt đầu trải bài 🔮"}
+              </button>
+            )}
+            {booking.status === "in_progress" && (
+              <button className="booking-action-button reader-complete" onClick={() => completeMutation.mutate()} disabled={completeMutation.isPending}>
+                {completeMutation.isPending ? "Đang xử lý..." : "Hoàn thành phiên đọc ✓"}
+              </button>
+            )}
+            {booking.status === "completed" && <div className="booking-completed">✦ Phiên trải bài đã hoàn tất</div>}
+          </div>
+        )}
+        {isDisputing && (
+          <button className="booking-action-button dispute-progress" onClick={() => navigate(relatedDispute?.id ? `/disputes/${relatedDispute.id}` : "/disputes")}>
+            ⚖️ Xem tiến trình khiếu nại →
+          </button>
+        )}
+        {isCustomer && isCompleted && (
+          <button className="booking-action-button dispute-open" onClick={handleOpenDisputeModal}>
+            ⚠ Yêu cầu Khiếu nại đơn này
+          </button>
+        )}
+      </div>
+
       {/* Modal Khiếu Nại */}
       {showDisputeModal && (
         <div
@@ -691,7 +549,12 @@ export default function BookingDetailPage() {
                   rows={4}
                   placeholder="Nêu rõ tình huống bạn gặp phải..."
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    if (disputeError) setDisputeError("");
+                  }}
+                  minLength={10}
+                  maxLength={2000}
                   disabled={disputeMutation.isPending}
                   style={{
                     width: "100%",
@@ -728,7 +591,7 @@ export default function BookingDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={disputeMutation.isPending || !description.trim()}
+                  disabled={disputeMutation.isPending || description.trim().length < 10}
                   style={{
                     padding: "10px 22px",
                     backgroundColor: "#ef4444",
@@ -737,8 +600,8 @@ export default function BookingDetailPage() {
                     borderRadius: "10px",
                     fontSize: "0.9rem",
                     fontWeight: "700",
-                    cursor: disputeMutation.isPending || !description.trim() ? "not-allowed" : "pointer",
-                    opacity: disputeMutation.isPending || !description.trim() ? 0.6 : 1,
+                    cursor: disputeMutation.isPending || description.trim().length < 10 ? "not-allowed" : "pointer",
+                    opacity: disputeMutation.isPending || description.trim().length < 10 ? 0.6 : 1,
                   }}
                 >
                   {disputeMutation.isPending ? "Đang gửi..." : "Xác nhận gửi khiếu nại"}

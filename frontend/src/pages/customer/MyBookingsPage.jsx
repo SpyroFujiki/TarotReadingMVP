@@ -115,7 +115,7 @@ export default function MyBookingsPage() {
               letterSpacing: "1px",
             }}
           >
-            Booking Của Tôi
+            Đơn Trải Bài Của Tôi
           </h1>
           {bookings && bookings.length > 0 && (
             <span style={{ fontSize: "0.88rem", color: "#94a3b8", marginTop: "4px", display: "inline-block" }}>

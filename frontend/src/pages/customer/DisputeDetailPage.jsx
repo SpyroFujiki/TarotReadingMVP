@@ -5,6 +5,7 @@ import { getDisputeDetail, getDisputeMessages, sendDisputeMessage } from "../../
 import { useAuth } from "../../contexts/AuthContext";
 import { LoadingState } from "../../components/LoadingState";
 import { EmptyState } from "../../components/EmptyState";
+import { getVerdictLabel, money } from "../../utils/disputeLabels";
 
 const categoryMap = {
   poor_quality: "Chất lượng không đạt yêu cầu",
@@ -104,6 +105,7 @@ export default function DisputeDetailPage() {
   const shortId = dispute.id ? dispute.id.slice(0, 8).toUpperCase() : "";
   const shortBookingId = dispute.booking_id ? dispute.booking_id.slice(0, 8).toUpperCase() : "";
   const categoryLabel = categoryMap[dispute.reason_category] || dispute.reason_category || "Khiếu nại dịch vụ";
+  const verdictLabel = getVerdictLabel(dispute.verdict);
 
   return (
     <div style={{ maxWidth: "1180px", margin: "0 auto", padding: "28px 24px 70px" }}>
@@ -278,6 +280,16 @@ export default function DisputeDetailPage() {
               </div>
             </div>
           )}
+
+          <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "14px" }}>
+            <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "1px", color: "#64748b", fontWeight: "700", display: "block", marginBottom: "6px" }}>
+              Kết luận
+            </span>
+            <div style={{ color: dispute.verdict ? "#4ade80" : "#94a3b8", fontWeight: "700" }}>
+              {verdictLabel}
+              {dispute.refund_amount != null && <span style={{ color: "#facc15", marginLeft: "8px" }}>{money.format(dispute.refund_amount)}</span>}
+            </div>
+          </div>
 
           <div
             style={{

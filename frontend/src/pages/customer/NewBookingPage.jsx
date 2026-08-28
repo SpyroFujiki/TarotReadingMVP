@@ -157,7 +157,7 @@ export default function NewBookingPage() {
               <span style={{ fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "1px", color: "#facc15", fontWeight: "700" }}>Gói dịch vụ</span>
               <h2 className="font-tarot" style={{ fontSize: "1.45rem", margin: 0, color: "#ffffff", lineHeight: "1.25" }}>{currentPkg.name}</h2>
               <div className="font-tarot" style={{ fontSize: "1.5rem", fontWeight: "700", color: "#facc15", marginTop: "2px" }}>{money.format(currentPkg.price)}</div>
-              <span style={{ fontSize: "0.85rem", color: "#cbd5e1" }}>⏱ Phản hồi: {currentPkg.expected_response_minutes} phút</span>
+              <span style={{ fontSize: "0.85rem", color: "#cbd5e1" }}>Phản hồi trong khoảng {currentPkg.expected_response_minutes} phút</span>
             </div>
           </div>
 

@@ -26,42 +26,6 @@ const getMultipleCards = (startIndex) => {
 
 const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
 
-const mockPackages = [
-  {
-    id: "1",
-    name: "Gói Tổng Quan Tâm Linh",
-    tagline: "thấu tỏ tương lai ✦ định hướng chọn lựa ✦ khai mở vận mệnh",
-    description: "Trải bài 5 lá phân tích toàn diện về công việc, tình cảm, sức khỏe và thông điệp vũ trụ gửi đến bạn trong tháng này. Năng lượng từ các lá bài sẽ soi sáng những góc tối bạn đang bỏ quên.",
-    energyText: "Năng lượng chủ đạo: Cảm giác đứng trước ngưỡng cửa của một hành trình mới. Trái tim đập rộn ràng và tâm trí háo hức đón nhận cơ hội.",
-    actionText: "Hành động khuyên dùng: Dũng cảm dấn thân vào thử thách mới, đặt câu hỏi trước khi quá muộn.",
-    price: 150000,
-    expected_response_time: "24 giờ",
-    cardIndex: 0
-  },
-  {
-    id: "2",
-    name: "Gói Tình Duyên Thần Tốc",
-    tagline: "kết nối tâm hồn ✦ thấu hiểu người ấy ✦ hóa giải khoảng cách",
-    description: "Giải đáp nhanh 1 câu hỏi cụ thể về người ấy, mối quan hệ hiện tại hoặc tương lai tình cảm. Phá vỡ mọi sự mập mờ và đưa ra lời khuyên chân thực.",
-    energyText: "Năng lượng chủ đạo: Sự rung động mãnh liệt và khao khát kết nối sâu sắc từ trực giác vũ trụ.",
-    actionText: "Hành động khuyên dùng: Thành thật với cảm xúc của chính mình, chủ động sẻ chia thay vì giữ trong lòng.",
-    price: 85000,
-    expected_response_time: "2 giờ",
-    cardIndex: 3
-  },
-  {
-    id: "3",
-    name: "Gói Định Hướng Sự Nghiệp",
-    tagline: "bứt phá giới hạn ✦ nắm bắt thời cơ ✦ vươn tầm thành công",
-    description: "Trải bài chuyên sâu 7 lá về con đường công danh, tìm ra điểm mạnh yếu và ngã rẽ phù hợp cho tương lai của bạn trong giai đoạn chuyển giao.",
-    energyText: "Năng lượng chủ đạo: Khát vọng khẳng định vị thế và tìm kiếm mục đích sống đích thực.",
-    actionText: "Hành động khuyên dùng: Lập kế hoạch hành động chi tiết, sẵn sàng đón nhận các cơ hội hợp tác lớn.",
-    price: 250000,
-    expected_response_time: "48 giờ",
-    cardIndex: 6
-  }
-];
-
 export default function PackagesPage() {
   const [hoveredId, setHoveredId] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
@@ -74,12 +38,14 @@ export default function PackagesPage() {
   
   if (query.isLoading) return <LoadingState />;
   
-  const packages = query.data || mockPackages; 
+  if (query.isError) return <EmptyState message="Không thể tải danh sách gói dịch vụ từ hệ thống." />;
+
+  const packages = query.data || [];
 
   if (packages.length === 0) return <EmptyState message="Hiện chưa có gói dịch vụ nào." />;
 
   return (
-    <div style={{ maxWidth: "1300px", margin: "24px auto 60px", padding: "0 20px" }}>
+    <div style={{ maxWidth: "1300px", margin: "24px auto 60px", padding: "0 clamp(28px, 5vw, 72px)" }}>
       
       {/* Ẩn triệt để thanh cuộn của modal */}
       <style>{`
@@ -141,9 +107,9 @@ export default function PackagesPage() {
             alignItems: "stretch" 
           }}
         >
-          {packages.map((pkg) => {
+          {packages.map((pkg, packageIndex) => {
             const isHovered = hoveredId === pkg.id;
-            const cards = getMultipleCards(pkg.cardIndex || 0);
+            const cards = getMultipleCards(packageIndex);
 
             return (
               <div 
@@ -228,7 +194,7 @@ export default function PackagesPage() {
                     {money.format(pkg.price)}
                   </div>
                   <div style={{ fontSize: "0.74rem", color: "#888888", fontWeight: "500", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    Nhận kết quả trong: {pkg.expected_response_time || `${pkg.expected_response_minutes} phút`}
+                    Thời gian xem bài: {pkg.expected_response_minutes} phút
                   </div>
                 </div>
 
@@ -339,7 +305,7 @@ export default function PackagesPage() {
 
             {/* Tagline phía trên */}
             <div style={{ textAlign: "center", fontSize: "0.78rem", color: "#666666", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "18px", padding: "0 20px" }}>
-              {selectedPackage.tagline}
+              {selectedPackage.description || "Thông tin chi tiết gói dịch vụ"}
             </div>
 
             {/* Ảnh lá bài trung tâm */}
@@ -370,24 +336,8 @@ export default function PackagesPage() {
               {selectedPackage.description}
             </div>
 
-            {/* Mục Năng lượng */}
-            <div style={{ marginBottom: "20px" }}>
-              <h3 className="font-tarot" style={{ fontSize: "1.35rem", fontWeight: "normal", marginBottom: "6px", color: "#111827" }}>
-                Năng lượng
-              </h3>
-              <p style={{ fontSize: "0.92rem", color: "#4b5563", lineHeight: "1.6", margin: 0 }}>
-                {selectedPackage.energyText}
-              </p>
-            </div>
-
-            {/* Mục Hành động */}
-            <div style={{ marginBottom: "30px" }}>
-              <h3 className="font-tarot" style={{ fontSize: "1.35rem", fontWeight: "normal", marginBottom: "6px", color: "#111827" }}>
-                Hành động
-              </h3>
-              <p style={{ fontSize: "0.92rem", color: "#4b5563", lineHeight: "1.6", margin: 0 }}>
-                {selectedPackage.actionText}
-              </p>
+            <div style={{ marginBottom: "30px", color: "#4b5563", fontSize: "0.92rem" }}>
+              Thời gian phản hồi dự kiến: <strong>{selectedPackage.expected_response_minutes} phút</strong>
             </div>
 
             {/* Chân Modal: Phí & Nút Đặt Lịch */}
@@ -399,7 +349,7 @@ export default function PackagesPage() {
               paddingTop: "18px" 
             }}>
               <div>
-                <div style={{ fontSize: "0.75rem", color: "#6b7280", textTransform: "uppercase", fontWeight: "600" }}>Mức phí đầu tư</div>
+                <div style={{ fontSize: "0.75rem", color: "#6b7280", textTransform: "uppercase", fontWeight: "600" }}>Mức phí dịch vụ</div>
                 <div style={{ fontSize: "1.45rem", fontWeight: "700", color: "#111827" }}>
                   {money.format(selectedPackage.price)}
                 </div>

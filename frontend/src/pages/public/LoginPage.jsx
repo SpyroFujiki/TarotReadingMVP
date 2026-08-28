@@ -21,7 +21,7 @@ export default function LoginPage() {
 
       // Điều hướng thông minh dựa trên Role thực tế trả về từ PostgreSQL
       if (loggedUser?.role === "admin") {
-        navigate("/admin");
+        navigate("/admin/disputes");
       } else if (loggedUser?.role === "reader") {
         navigate("/reader/queue");
       } else {

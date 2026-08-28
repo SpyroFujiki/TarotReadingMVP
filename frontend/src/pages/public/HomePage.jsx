@@ -61,7 +61,7 @@ export default function HomePage() {
   const currentCard = TAROT_CARDS[currentIndex];
 
   return (
-    <div style={{ maxWidth: "1120px", margin: "32px auto 60px", padding: "0 20px" }}>
+    <div style={{ maxWidth: "1120px", margin: "32px auto 60px", padding: "0 clamp(28px, 5vw, 72px)" }}>
       {/* KHUNG BAO NGOÀI BO GÓC & MỞ RỘNG */}
       <div
         style={{

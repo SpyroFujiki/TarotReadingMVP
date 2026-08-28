@@ -43,7 +43,11 @@ def require_message_read_access(
     is_reader = booking.reader_id == current_user.id
     is_dispute_admin = (
         current_user.role == "admin"
-        and booking.status == BookingStatus.DISPUTING
+        and booking.status in {
+            BookingStatus.DISPUTING,
+            BookingStatus.COMPLETED,
+            BookingStatus.REFUNDED,
+        }
     )
 
     if not (is_customer or is_reader or is_dispute_admin):

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getMyDisputes } from "../../api/disputeApi";
 import { LoadingState } from "../../components/LoadingState";
 import { EmptyState } from "../../components/EmptyState";
+import { getVerdictLabel, money } from "../../utils/disputeLabels";
 
 const categoryMap = {
   poor_quality: "Chất lượng không đạt yêu cầu",
@@ -103,6 +104,7 @@ export default function DisputesPage() {
             const shortBookingId = item.booking_id ? item.booking_id.slice(0, 8).toUpperCase() : "";
             const categoryText = categoryMap[item.reason_category] || item.reason_category || "Khiếu nại dịch vụ";
             const detailText = item.description || item.reason || "(Chưa có nội dung mô tả)";
+            const verdictText = getVerdictLabel(item.verdict);
 
             return (
               <div
@@ -200,6 +202,11 @@ export default function DisputesPage() {
                   >
                     Nội dung: <span style={{ color: "#e2e8f0" }}>"{detailText}"</span>
                   </p>
+                  <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", fontSize: "0.82rem" }}>
+                    <span style={{ color: "#64748b" }}>Kết luận:</span>
+                    <strong style={{ color: item.verdict ? "#4ade80" : "#94a3b8" }}>{verdictText}</strong>
+                    {item.refund_amount != null && <span style={{ color: "#facc15" }}>({money.format(item.refund_amount)})</span>}
+                  </div>
                 </div>
 
                 <div style={{ borderLeft: "1px solid rgba(255, 255, 255, 0.06)", paddingLeft: "24px", flexShrink: 0 }}>
