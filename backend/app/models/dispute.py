@@ -53,7 +53,7 @@ class Dispute(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("uuidv7()"),
+        server_default=text("gen_random_uuid()"),
     )
 
     booking_id: Mapped[uuid.UUID] = mapped_column(

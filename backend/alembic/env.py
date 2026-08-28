@@ -16,7 +16,7 @@ config = context.config
 # Ghi đè sqlalchemy.url trong alembic.ini bằng URL từ .env
 config.set_main_option(
     "sqlalchemy.url",
-    settings.database_url.replace("%", "%%"),
+    settings.direct_url.replace("%", "%%"),
 )
 
 if config.config_file_name is not None:
