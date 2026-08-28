@@ -14,7 +14,11 @@ import MyBookingsPage from "../pages/customer/MyBookingsPage";
 import NewBookingPage from "../pages/customer/NewBookingPage";
 import BookingDetailPage from "../pages/customer/BookingDetailPage";
 
-// Import 2 trang thật của Reader
+// Import các trang Khiếu nại (Disputes)
+import DisputesPage from "../pages/customer/DisputesPage";
+import DisputeDetailPage from "../pages/customer/DisputeDetailPage";
+
+// Import các trang của Reader
 import ReaderQueuePage from "../pages/reader/ReaderQueuePage";
 import ReaderBookingsPage from "../pages/reader/ReaderBookingsPage";
 
@@ -51,19 +55,11 @@ export const router = createBrowserRouter([
           },
           {
             path: "/disputes",
-            element: placeholder(
-              "Khiếu nại",
-              "Theo dõi các khiếu nại liên quan đến phiên đọc."
-            ),
+            element: <DisputesPage />,
           },
           {
             path: "/disputes/:disputeId",
-            element: placeholder(
-              "Chi tiết khiếu nại",
-              "Trao đổi và theo dõi kết quả xử lý khiếu nại.",
-              "Về danh sách",
-              "/disputes"
-            ),
+            element: <DisputeDetailPage />,
           },
         ],
       },

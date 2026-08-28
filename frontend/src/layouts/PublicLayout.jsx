@@ -1,95 +1,182 @@
-import { useEffect, useState } from "react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
-import logo from "../assets/icon.svg";
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 export function PublicLayout() {
-  const { user, signOut } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
-  const [showScrollTop, setShowScrollTop] = useState(false);
 
-  useEffect(() => {
-    const handleScroll = () => setShowScrollTop(window.scrollY > 300);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const navLinkStyle = ({ isActive }) => ({
+    color: isActive ? "#facc15" : "#cbd5e1",
+    textDecoration: "none",
+    fontSize: "0.92rem",
+    fontWeight: isActive ? "700" : "500",
+    transition: "color 0.2s ease",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    borderBottom: isActive ? "2px solid #facc15" : "2px solid transparent",
+    paddingBottom: "4px",
+  });
 
   return (
-    <>
-      {/* 1. THANH HEADER (Giữ nguyên class của bạn) */}
-      <header className="site-header">
-        <Link className="brand" to="/">
-          <img src={logo} alt="Spyro Taro" />
-        </Link>
-        <nav>
-          <Link to="/">Trang chủ</Link>
-          <Link to="/packages">Dịch vụ</Link>
-          {!user ? (
-            <Link className="nav-cta" to="/login">Đăng nhập / Đăng ký</Link>
-          ) : (
-            <button className="nav-action" onClick={signOut}>Đăng xuất</button>
-          )}
-        </nav>
+    <div style={{ minHeight: "100vh", backgroundColor: "#001326", color: "#ffffff", display: "flex", flexDirection: "column" }}>
+      {/* Header Sticky */}
+      <header
+        style={{
+          borderBottom: "1px solid rgba(250, 204, 21, 0.2)",
+          backgroundColor: "rgba(0, 19, 38, 0.95)",
+          backdropFilter: "blur(12px)",
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1280px",
+            margin: "0 auto",
+            padding: "16px 24px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          {/* Logo */}
+          <NavLink to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "10px" }}>
+            <span className="font-tarot" style={{ fontSize: "1.55rem", color: "#facc15", fontWeight: "700", letterSpacing: "1.5px" }}>
+              SPYRO <span style={{ color: "#ffffff", fontWeight: "300" }}>TARO</span>
+            </span>
+          </NavLink>
+
+          {/* Nav Items */}
+          <nav style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+            <NavLink to="/" style={navLinkStyle}>
+              Trang chủ
+            </NavLink>
+
+            {/* Khi chưa đăng nhập */}
+            {!isAuthenticated && (
+              <>
+                <NavLink to="/packages" style={navLinkStyle}>
+                  Dịch vụ
+                </NavLink>
+                <NavLink to="/login" style={navLinkStyle}>
+                  Đăng nhập
+                </NavLink>
+                <NavLink
+                  to="/register"
+                  style={{
+                    padding: "8px 18px",
+                    backgroundColor: "#facc15",
+                    color: "#001f3f",
+                    borderRadius: "8px",
+                    textDecoration: "none",
+                    fontWeight: "700",
+                    fontSize: "0.88rem",
+                    transition: "opacity 0.2s",
+                  }}
+                >
+                  Đăng ký
+                </NavLink>
+              </>
+            )}
+
+            {/* Khi đã đăng nhập với vai trò Customer */}
+            {isAuthenticated && user?.role === "customer" && (
+              <>
+                <NavLink to="/packages" style={navLinkStyle}>
+                  Dịch vụ
+                </NavLink>
+                <NavLink to="/bookings" style={navLinkStyle}>
+                  Booking của tôi
+                </NavLink>
+                <NavLink to="/disputes" style={navLinkStyle}>
+                  Khiếu nại
+                </NavLink>
+                <NavLink to="/account" style={navLinkStyle}>
+                  Tài khoản ({user?.full_name || user?.email?.split("@")[0] || "Bạn"})
+                </NavLink>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    padding: "7px 16px",
+                    backgroundColor: "transparent",
+                    color: "#f87171",
+                    border: "1px solid rgba(239, 68, 68, 0.4)",
+                    borderRadius: "8px",
+                    fontSize: "0.85rem",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.15)";
+                    e.currentTarget.style.borderColor = "#ef4444";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                    e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.4)";
+                  }}
+                >
+                  Đăng xuất
+                </button>
+              </>
+            )}
+
+            {/* Khi đã đăng nhập với vai trò Reader */}
+            {isAuthenticated && user?.role === "reader" && (
+              <>
+                <NavLink to="/reader/queue" style={navLinkStyle}>
+                  ⏳ Hàng đợi Reader
+                </NavLink>
+                <NavLink to="/reader/bookings" style={navLinkStyle}>
+                  🔮 Đơn đang phụ trách
+                </NavLink>
+                <NavLink to="/disputes" style={navLinkStyle}>
+                  ⚖️ Khiếu nại
+                </NavLink>
+                <NavLink to="/account" style={navLinkStyle}>
+                  Tài khoản ({user?.full_name || user?.email?.split("@")[0] || "Reader"})
+                </NavLink>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    padding: "7px 16px",
+                    backgroundColor: "transparent",
+                    color: "#f87171",
+                    border: "1px solid rgba(239, 68, 68, 0.4)",
+                    borderRadius: "8px",
+                    fontSize: "0.85rem",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.15)";
+                    e.currentTarget.style.borderColor = "#ef4444";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                    e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.4)";
+                  }}
+                >
+                  Đăng xuất
+                </button>
+              </>
+            )}
+          </nav>
+        </div>
       </header>
 
-      {/* 2. PHẦN NỘI DUNG CHÍNH (Outlet sẽ hiển thị HomePage, PackagesPage...) */}
-      <main className="public-main">
+      {/* Main Content */}
+      <main style={{ flex: 1 }}>
         <Outlet />
       </main>
-
-      {/* 3. CHÂN TRANG (FOOTER) */}
-      <footer style={{ 
-        borderTop: "1px solid rgba(255, 215, 0, 0.2)", 
-        padding: "60px 20px", 
-        margin: "80px auto 0", 
-        maxWidth: "1400px", /* Nới rộng từ 1100px lên 1400px */
-        display: "flex",
-        justifyContent: "space-between", 
-        flexWrap: "wrap",
-        gap: "40px"
-      }}>
-        {/* Cột 1 */}
-        <div style={{ maxWidth: "300px" }}>
-          <img src={logo} alt="Logo" style={{ width: "90px", marginBottom: "20px" }} />
-          <p style={{ fontSize: "1.15rem", color: "#cccccc", lineHeight: "1.6" }}>
-            Gỡ rối hiện tại — Mở lối tương lai.
-          </p>
-        </div>
-        
-        {/* Cột 2 */}
-        <div>
-          <h4 style={{ fontSize: "1.4rem", fontWeight: "bold", color: "#ffd700", marginBottom: "25px" }}>
-            Khám phá
-          </h4>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: "1.15rem", color: "#cccccc", lineHeight: "2.2" }}>
-            <li><Link to="/packages" style={{ color: "inherit", textDecoration: "none" }}>Các gói dịch vụ</Link></li>
-            <li><Link to="/login" style={{ color: "inherit", textDecoration: "none" }}>Đăng nhập / Đăng ký</Link></li>
-          </ul>
-        </div>
-
-        {/* Cột 3 */}
-        <div>
-          <h4 style={{ fontSize: "1.4rem", fontWeight: "bold", color: "#ffd700", marginBottom: "25px" }}>
-            Tarot Reading MVP
-          </h4>
-          <p style={{ fontSize: "1.15rem", color: "#cccccc", marginBottom: "20px" }}>
-            Không gian kết nối khách hàng và reader.
-          </p>
-          <p style={{ fontSize: "1.05rem", color: "#888888" }}>
-            © 2026 Spyro Taro
-          </p>
-        </div>
-      </footer>
-
-      {/* Nút cuộn lên đầu trang (Giữ nguyên logic của bạn) */}
-      {showScrollTop && (
-        <button 
-          className="scroll-top" 
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        >
-          ↑
-        </button>
-      )}
-    </>
+    </div>
   );
 }

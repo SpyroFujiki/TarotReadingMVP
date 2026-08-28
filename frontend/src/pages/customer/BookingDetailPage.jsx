@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getBookingDetail, startBooking, completeBooking } from "../../api/bookingApi";
 import { getServiceMessages, sendServiceMessage } from "../../api/serviceMessageApi";
+import { createDispute, getMyDisputes } from "../../api/disputeApi";
 import { getPackages } from "../../api/packageApi";
 import { useAuth } from "../../contexts/AuthContext";
 import { LoadingState } from "../../components/LoadingState";
@@ -20,6 +21,18 @@ const tarotCards = Object.entries(cardAssets)
 
 const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
 
+const parseApiError = (err) => {
+  const detail = err?.detail || err?.response?.data?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail[0]?.msg || JSON.stringify(detail[0]);
+  }
+  if (typeof detail === "object" && detail !== null) {
+    return detail?.msg || JSON.stringify(detail);
+  }
+  return err?.message || "Đã xảy ra lỗi, vui lòng thử lại.";
+};
+
 export default function BookingDetailPage() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
@@ -28,9 +41,15 @@ export default function BookingDetailPage() {
 
   const [messageInput, setMessageInput] = useState("");
   const [chatError, setChatError] = useState("");
+
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [reasonCategory, setReasonCategory] = useState("poor_quality");
+  const [description, setDescription] = useState("");
+  const [disputeError, setDisputeError] = useState("");
+
   const chatBottomRef = useRef(null);
 
-  // Lấy chi tiết đơn đặt bài
+  // Chi tiết Booking
   const {
     data: booking,
     isLoading: isBookingLoading,
@@ -42,13 +61,13 @@ export default function BookingDetailPage() {
     refetchInterval: 3000,
   });
 
-  // Lấy thông tin các gói bài
+  // Gói bài
   const { data: packages } = useQuery({
     queryKey: ["packages"],
     queryFn: getPackages,
   });
 
-  // Lấy danh sách tin nhắn trao đổi
+  // Tin nhắn dịch vụ
   const { data: messages, isLoading: isMessagesLoading } = useQuery({
     queryKey: ["service-messages", bookingId],
     queryFn: () => getServiceMessages(bookingId),
@@ -56,12 +75,17 @@ export default function BookingDetailPage() {
     refetchInterval: 2500,
   });
 
-  // Tự động cuộn xuống cuối khi có tin nhắn mới
+  // Danh sách khiếu nại để liên kết nút xem nhanh
+  const { data: disputes } = useQuery({
+    queryKey: ["my-disputes"],
+    queryFn: getMyDisputes,
+    enabled: !!bookingId,
+  });
+
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Mutation gửi tin nhắn
   const sendMessageMutation = useMutation({
     mutationFn: (content) => sendServiceMessage(bookingId, { content }),
     onSuccess: () => {
@@ -69,29 +93,41 @@ export default function BookingDetailPage() {
       setChatError("");
       queryClient.invalidateQueries({ queryKey: ["service-messages", bookingId] });
     },
-    onError: (err) => {
-      setChatError(err?.detail || err?.message || "Không thể gửi tin nhắn. Hãy kiểm tra trạng thái đơn!");
-    },
+    onError: (err) => setChatError(parseApiError(err)),
   });
 
-  // Mutation bắt đầu trải bài (dành cho Reader)
   const startMutation = useMutation({
     mutationFn: () => startBooking(bookingId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["booking-detail", bookingId] });
       queryClient.invalidateQueries({ queryKey: ["assigned-bookings"] });
     },
-    onError: (err) => alert(err?.detail || err?.message || "Không thể bắt đầu phiên!"),
+    onError: (err) => alert(parseApiError(err)),
   });
 
-  // Mutation hoàn thành phiên đọc (dành cho Reader)
   const completeMutation = useMutation({
     mutationFn: () => completeBooking(bookingId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["booking-detail", bookingId] });
       queryClient.invalidateQueries({ queryKey: ["assigned-bookings"] });
     },
-    onError: (err) => alert(err?.detail || err?.message || "Không thể hoàn thành phiên!"),
+    onError: (err) => alert(parseApiError(err)),
+  });
+
+  const disputeMutation = useMutation({
+    mutationFn: (payload) => createDispute(bookingId, payload),
+    onSuccess: (res) => {
+      setShowDisputeModal(false);
+      setDescription("");
+      queryClient.invalidateQueries({ queryKey: ["booking-detail", bookingId] });
+      queryClient.invalidateQueries({ queryKey: ["my-disputes"] });
+      if (res?.id) {
+        navigate(`/disputes/${res.id}`);
+      } else {
+        navigate("/disputes");
+      }
+    },
+    onError: (err) => setDisputeError(parseApiError(err)),
   });
 
   if (isBookingLoading) return <LoadingState />;
@@ -100,6 +136,14 @@ export default function BookingDetailPage() {
   }
 
   const isReader = user?.role === "reader" || booking.reader_id === user?.id;
+  const isCustomer = !isReader && booking.customer_id === user?.id;
+  const statusLower = booking?.status?.toLowerCase();
+  const isDisputing = statusLower === "disputing" || statusLower === "disputed";
+  const isCompleted = statusLower === "completed";
+
+  // Tìm dispute liên quan đến booking này nếu có
+  const relatedDispute = disputes?.find((d) => d.booking_id === booking.id);
+
   const currentPkg = packages?.find((p) => p.id === booking.package_id);
   const pkgIndex = packages?.findIndex((p) => p.id === currentPkg?.id) ?? 0;
   const cardImg = tarotCards.length > 0 ? tarotCards[Math.max(0, pkgIndex) % tarotCards.length] : null;
@@ -111,6 +155,21 @@ export default function BookingDetailPage() {
     sendMessageMutation.mutate(messageInput.trim());
   };
 
+  const handleOpenDisputeModal = () => {
+    setDisputeError("");
+    setDescription("");
+    setShowDisputeModal(true);
+  };
+
+  const handleSubmitDispute = (e) => {
+    e.preventDefault();
+    if (!description.trim() || disputeMutation.isPending) return;
+    disputeMutation.mutate({
+      reason_category: reasonCategory,
+      description: description.trim(),
+    });
+  };
+
   const getStatusBadge = (status) => {
     switch (status?.toLowerCase()) {
       case "completed":
@@ -119,6 +178,7 @@ export default function BookingDetailPage() {
         return { text: "🔮 Đang Trải Bài", bg: "rgba(168, 85, 247, 0.2)", border: "#a855f7", color: "#d8b4fe" };
       case "assigned":
         return { text: "👤 Reader Đã Nhận Đơn", bg: "rgba(59, 130, 246, 0.2)", border: "#3b82f6", color: "#93c5fd" };
+      case "disputing":
       case "disputed":
         return { text: "⚠ Đang Khiếu Nại", bg: "rgba(239, 68, 68, 0.2)", border: "#ef4444", color: "#fca5a5" };
       default:
@@ -131,7 +191,7 @@ export default function BookingDetailPage() {
 
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "30px 24px 70px" }}>
-      {/* Nút quay lại & Header */}
+      {/* Header */}
       <div style={{ marginBottom: "28px" }}>
         <button
           onClick={() => navigate(isReader ? "/reader/bookings" : "/bookings")}
@@ -183,7 +243,7 @@ export default function BookingDetailPage() {
               {currentPkg?.name || "The Star"}
             </h1>
             <span style={{ fontSize: "0.85rem", color: "#94a3b8" }}>
-              Mã đơn: <strong style={{ color: "#e2e8f0" }}>#{shortBookingId}</strong> • Khởi tạo: {new Date(booking.created_at).toLocaleString("vi-VN")}
+              Mã đơn: <strong style={{ color: "#e2e8f0", fontFamily: "ui-monospace, monospace" }}>#{shortBookingId}</strong> • Khởi tạo: {new Date(booking.created_at).toLocaleString("vi-VN")}
             </span>
           </div>
 
@@ -205,10 +265,10 @@ export default function BookingDetailPage() {
         </div>
       </div>
 
-      {/* Khung chính: 2 Cột */}
+      {/* 2 Cột */}
       <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "28px", alignItems: "start" }}>
         
-        {/* CỘT TRÁI: THẺ THÔNG TIN GÓI DỊCH VỤ & BẢNG ĐIỀU KHIỂN READER */}
+        {/* CỘT TRÁI */}
         <div
           style={{
             background: "linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 0.95) 100%)",
@@ -268,17 +328,9 @@ export default function BookingDetailPage() {
             </div>
           </div>
 
-          {/* BẢNG ĐIỀU KHIỂN DÀNH CHO READER */}
+          {/* Reader Actions */}
           {isReader && (
-            <div
-              style={{
-                borderTop: "1px solid rgba(250, 204, 21, 0.2)",
-                paddingTop: "16px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-              }}
-            >
+            <div style={{ borderTop: "1px solid rgba(250, 204, 21, 0.2)", paddingTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
               <span style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "1px", color: "#facc15", fontWeight: "700" }}>
                 ✦ Thao tác Reader
               </span>
@@ -333,7 +385,66 @@ export default function BookingDetailPage() {
             </div>
           )}
 
-          {!isReader && (
+          {/* Đang Khiếu Nại -> Nút Chuyển Nhanh Tới Phòng Xử Lý */}
+          {isDisputing && (
+            <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "14px" }}>
+              <button
+                onClick={() => {
+                  if (relatedDispute?.id) {
+                    navigate(`/disputes/${relatedDispute.id}`);
+                  } else {
+                    navigate("/disputes");
+                  }
+                }}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  backgroundColor: "rgba(239, 68, 68, 0.15)",
+                  color: "#fca5a5",
+                  border: "1px solid #ef4444",
+                  borderRadius: "10px",
+                  fontSize: "0.9rem",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                }}
+              >
+                ⚖️ Xem tiến trình khiếu nại →
+              </button>
+            </div>
+          )}
+
+          {/* Nút Mở Khiếu Nại cho Customer khi đã Completed */}
+          {isCustomer && isCompleted && (
+            <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "14px" }}>
+              <button
+                onClick={handleOpenDisputeModal}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  backgroundColor: "rgba(239, 68, 68, 0.12)",
+                  color: "#f87171",
+                  border: "1px solid rgba(239, 68, 68, 0.5)",
+                  borderRadius: "10px",
+                  fontSize: "0.9rem",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                }}
+              >
+                ⚠ Yêu cầu Khiếu nại đơn này
+              </button>
+            </div>
+          )}
+
+          {/* Lưu ý */}
+          {isCustomer && !isCompleted && !isDisputing && (
             <div
               style={{
                 background: "rgba(250, 204, 21, 0.05)",
@@ -350,7 +461,7 @@ export default function BookingDetailPage() {
           )}
         </div>
 
-        {/* CỘT PHẢI: PHÒNG CHAT TRẢI BÀI */}
+        {/* CỘT PHẢI: CHAT */}
         <div
           style={{
             background: "linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(2, 6, 23, 0.95) 100%)",
@@ -364,7 +475,6 @@ export default function BookingDetailPage() {
             backdropFilter: "blur(12px)",
           }}
         >
-          {/* Header phòng chat */}
           <div
             style={{
               display: "flex",
@@ -389,7 +499,6 @@ export default function BookingDetailPage() {
             </div>
           </div>
 
-          {/* Vùng hiển thị tin nhắn */}
           <div
             style={{
               flex: 1,
@@ -404,15 +513,7 @@ export default function BookingDetailPage() {
             {isMessagesLoading ? (
               <div style={{ textAlign: "center", color: "#94a3b8", margin: "auto" }}>Đang kết nối tín hiệu...</div>
             ) : !messages || messages.length === 0 ? (
-              <div
-                style={{
-                  textAlign: "center",
-                  margin: "auto",
-                  color: "#94a3b8",
-                  maxWidth: "420px",
-                  lineHeight: "1.6",
-                }}
-              >
+              <div style={{ textAlign: "center", margin: "auto", color: "#94a3b8", maxWidth: "420px", lineHeight: "1.6" }}>
                 <div style={{ fontSize: "2.4rem", marginBottom: "10px" }}>✨</div>
                 <div style={{ color: "#f1f5f9", fontWeight: "600", fontSize: "1rem", marginBottom: "4px" }}>
                   Chưa có thông điệp nào
@@ -463,24 +564,12 @@ export default function BookingDetailPage() {
             <div ref={chatBottomRef} />
           </div>
 
-          {/* Cảnh báo lỗi nếu có */}
           {chatError && (
-            <div
-              style={{
-                backgroundColor: "rgba(239, 68, 68, 0.15)",
-                border: "1px solid #ef4444",
-                color: "#fca5a5",
-                padding: "8px 12px",
-                borderRadius: "8px",
-                fontSize: "0.85rem",
-                marginBottom: "10px",
-              }}
-            >
+            <div style={{ backgroundColor: "rgba(239, 68, 68, 0.15)", border: "1px solid #ef4444", color: "#fca5a5", padding: "8px 12px", borderRadius: "8px", fontSize: "0.85rem", marginBottom: "10px" }}>
               {chatError}
             </div>
           )}
 
-          {/* Form gửi tin nhắn */}
           <form onSubmit={handleSendMessage} style={{ display: "flex", gap: "12px", alignItems: "center" }}>
             <input
               type="text"
@@ -524,6 +613,141 @@ export default function BookingDetailPage() {
           </form>
         </div>
       </div>
+
+      {/* Modal Khiếu Nại */}
+      {showDisputeModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.78)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "#0f172a",
+              border: "1px solid rgba(239, 68, 68, 0.4)",
+              borderRadius: "20px",
+              padding: "30px",
+              maxWidth: "520px",
+              width: "100%",
+              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.7)",
+            }}
+          >
+            <h2 className="font-tarot" style={{ color: "#f87171", fontSize: "2rem", margin: "0 0 10px 0", fontWeight: "400" }}>
+              Khiếu Nại Phiên Đọc
+            </h2>
+            <p style={{ color: "#94a3b8", fontSize: "0.9rem", lineHeight: "1.5", margin: "0 0 18px 0" }}>
+              Ban Quản Trị sẽ cùng đối thoại trực tiếp để đảm bảo quyền lợi công bằng nhất cho bạn.
+            </p>
+
+            {disputeError && (
+              <div style={{ backgroundColor: "rgba(239, 68, 68, 0.15)", border: "1px solid #ef4444", color: "#fca5a5", padding: "10px", borderRadius: "8px", fontSize: "0.85rem", marginBottom: "14px" }}>
+                {disputeError}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitDispute}>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", color: "#e2e8f0", fontSize: "0.88rem", fontWeight: "600", marginBottom: "6px" }}>
+                  Lý do phân loại:
+                </label>
+                <select
+                  value={reasonCategory}
+                  onChange={(e) => setReasonCategory(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: "10px",
+                    backgroundColor: "#030712",
+                    border: "1px solid rgba(255, 255, 255, 0.18)",
+                    color: "#ffffff",
+                    fontSize: "0.95rem",
+                    outline: "none",
+                  }}
+                >
+                  <option value="poor_quality">Chất lượng trải bài kém / sơ sài</option>
+                  <option value="incomplete_service">Chưa hoàn thành dịch vụ / Chưa trả bài</option>
+                  <option value="service_not_as_described">Dịch vụ không đúng như mô tả</option>
+                  <option value="inappropriate_conduct">Thái độ hoặc hành vi không phù hợp</option>
+                  <option value="other">Lý do khác</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: "20px" }}>
+                <label style={{ display: "block", color: "#e2e8f0", fontSize: "0.88rem", fontWeight: "600", marginBottom: "6px" }}>
+                  Mô tả chi tiết sự việc:
+                </label>
+                <textarea
+                  rows={4}
+                  placeholder="Nêu rõ tình huống bạn gặp phải..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  disabled={disputeMutation.isPending}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: "10px",
+                    backgroundColor: "#030712",
+                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                    color: "#ffffff",
+                    fontSize: "0.95rem",
+                    boxSizing: "border-box",
+                    outline: "none",
+                    resize: "vertical",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowDisputeModal(false)}
+                  disabled={disputeMutation.isPending}
+                  style={{
+                    padding: "10px 18px",
+                    backgroundColor: "transparent",
+                    color: "#94a3b8",
+                    border: "1px solid #475569",
+                    borderRadius: "10px",
+                    fontSize: "0.9rem",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                  }}
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={disputeMutation.isPending || !description.trim()}
+                  style={{
+                    padding: "10px 22px",
+                    backgroundColor: "#ef4444",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "10px",
+                    fontSize: "0.9rem",
+                    fontWeight: "700",
+                    cursor: disputeMutation.isPending || !description.trim() ? "not-allowed" : "pointer",
+                    opacity: disputeMutation.isPending || !description.trim() ? 0.6 : 1,
+                  }}
+                >
+                  {disputeMutation.isPending ? "Đang gửi..." : "Xác nhận gửi khiếu nại"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

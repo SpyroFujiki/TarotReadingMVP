@@ -4,28 +4,26 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, update
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_current_user
-
 from app.db.dependencies import get_db
-
 from app.models.booking import Booking
 from app.models.dispute import Dispute
 from app.models.enum import BookingStatus, DisputeStatus
 from app.models.user import User
-
 from app.schemas.dispute import DisputeCreate, DisputePublic
 
 router = APIRouter(tags=["disputes"])
+
 
 @router.post(
     "/bookings/{booking_id}/dispute",
     response_model=DisputePublic,
     status_code=status.HTTP_201_CREATED,
-    summary="Tạo khiếu nại cho đơn hàng (chỉ người liên quan mới có quyền khiếu nại)"
+    summary="Tạo khiếu nại cho đơn hàng (chỉ người liên quan mới có quyền khiếu nại)",
 )
 def create_dispute(
     booking_id: uuid.UUID,
@@ -76,7 +74,7 @@ def create_dispute(
         booking_id=booking.id,
         raised_by_id=current_user.id,
         admin_id=None,
-        reason_category=payload.reason_category.value,
+        reason_category=payload.reason_category.value if hasattr(payload.reason_category, "value") else str(payload.reason_category),
         description=payload.description.strip(),
         status=DisputeStatus.OPEN,
     )
@@ -99,10 +97,11 @@ def create_dispute(
 
     return dispute
 
+
 @router.get(
     "/disputes/me",
     response_model=list[DisputePublic],
-    summary="Lấy danh sách khiếu nại của người dùng hiện tại"
+    summary="Lấy danh sách khiếu nại của người dùng hiện tại (cả Customer lẫn Reader phụ trách)",
 )
 def list_my_disputes(
     db: Session = Depends(get_db),
@@ -110,16 +109,25 @@ def list_my_disputes(
 ) -> list[Dispute]:
     disputes = db.scalars(
         select(Dispute)
-        .where(Dispute.raised_by_id == current_user.id)
+        .join(Booking, Dispute.booking_id == Booking.id)
+        .where(
+            or_(
+                Dispute.raised_by_id == current_user.id,
+                Booking.customer_id == current_user.id,
+                Booking.reader_id == current_user.id,
+            )
+        )
+        .distinct()
         .order_by(Dispute.created_at.desc())
     ).all()
 
     return list(disputes)
 
+
 @router.get(
     "/disputes/{dispute_id}",
     response_model=DisputePublic,
-    summary="Lấy thông tin chi tiết của một khiếu nại (chỉ người liên quan mới có quyền xem)"
+    summary="Lấy thông tin chi tiết của một khiếu nại (chỉ người liên quan mới có quyền xem)",
 )
 def get_dispute_detail(
     dispute_id: uuid.UUID,
@@ -140,7 +148,7 @@ def get_dispute_detail(
     is_reader = booking.reader_id == current_user.id
     is_assigned_admin = (
         current_user.role == "admin"
-        and dispute.admin_id == current_user.id
+        and (dispute.admin_id == current_user.id or dispute.admin_id is None)
     )
 
     if not (is_customer or is_reader or is_assigned_admin):

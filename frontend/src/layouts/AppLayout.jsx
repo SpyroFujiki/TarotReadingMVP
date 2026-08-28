@@ -1,110 +1,136 @@
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 export function AppLayout() {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    signOut();
-    navigate("/");
+    logout();
+    navigate("/login");
   };
 
-  const isReader = user?.role === "reader";
-  const isAdmin = user?.role === "admin";
+  const navLinkStyle = ({ isActive }) => ({
+    color: isActive ? "#facc15" : "#cbd5e1",
+    textDecoration: "none",
+    fontSize: "0.95rem",
+    fontWeight: isActive ? "700" : "500",
+    transition: "color 0.2s ease",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    borderBottom: isActive ? "2px solid #facc15" : "2px solid transparent",
+    paddingBottom: "4px",
+  });
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#001f3f", color: "#ffffff" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#001326", color: "#ffffff", display: "flex", flexDirection: "column" }}>
+      {/* Header / Navbar */}
       <header
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "16px 40px",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          backgroundColor: "rgba(0, 31, 63, 0.95)",
-          backdropFilter: "blur(8px)",
+          borderBottom: "1px solid rgba(250, 204, 21, 0.2)",
+          backgroundColor: "rgba(0, 19, 38, 0.95)",
+          backdropFilter: "blur(12px)",
           position: "sticky",
           top: 0,
           zIndex: 50,
         }}
       >
-        <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-          <span
-            style={{
-              fontSize: "1.1rem",
-              fontWeight: "700",
-              letterSpacing: "2px",
-              color: "#ffffff",
-              textTransform: "uppercase",
-            }}
-          >
-            LÁ BÀI <span style={{ color: "#facc15", fontWeight: "300" }}>Tarot</span>
-          </span>
-        </Link>
+        <div
+          style={{
+            maxWidth: "1280px",
+            margin: "0 auto",
+            padding: "16px 24px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          {/* Logo */}
+          <NavLink to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}>
+            <span className="font-tarot" style={{ fontSize: "1.6rem", color: "#facc15", fontWeight: "700", letterSpacing: "1.5px" }}>
+              LÁ BÀI <span style={{ color: "#ffffff", fontWeight: "300" }}>TAROT</span>
+            </span>
+          </NavLink>
 
-        <nav style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-          {isReader ? (
-            <>
-              <Link to="/reader/queue" style={{ color: "#facc15", textDecoration: "none", fontSize: "0.95rem", fontWeight: "600" }}>
-                ⏳ Hàng đợi Reader
-              </Link>
-              <Link to="/reader/bookings" style={{ color: "#e2e8f0", textDecoration: "none", fontSize: "0.95rem", fontWeight: "600" }}>
-                🔮 Đơn đang phụ trách
-              </Link>
-            </>
-          ) : isAdmin ? (
-            <>
-              <Link to="/admin/disputes" style={{ color: "#facc15", textDecoration: "none", fontSize: "0.95rem", fontWeight: "600" }}>
-                Hàng đợi khiếu nại
-              </Link>
-              <Link to="/admin/users" style={{ color: "#e2e8f0", textDecoration: "none", fontSize: "0.95rem" }}>
-                Quản lý User
-              </Link>
-              <Link to="/admin/audit-logs" style={{ color: "#e2e8f0", textDecoration: "none", fontSize: "0.95rem" }}>
-                Nhật ký
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link to="/" style={{ color: "#e2e8f0", textDecoration: "none", fontSize: "0.95rem" }}>
-                Trang chủ
-              </Link>
-              <Link to="/packages" style={{ color: "#e2e8f0", textDecoration: "none", fontSize: "0.95rem" }}>
-                Dịch vụ
-              </Link>
-              <Link to="/bookings" style={{ color: "#e2e8f0", textDecoration: "none", fontSize: "0.95rem" }}>
-                Booking của tôi
-              </Link>
-              <Link to="/disputes" style={{ color: "#e2e8f0", textDecoration: "none", fontSize: "0.95rem" }}>
-                Khiếu nại
-              </Link>
-            </>
-          )}
+          {/* Navigation Links */}
+          <nav style={{ display: "flex", alignItems: "center", gap: "28px" }}>
+            {/* Customer Links */}
+            {user?.role === "customer" && (
+              <>
+                <NavLink to="/packages" style={navLinkStyle}>
+                  Dịch vụ
+                </NavLink>
+                <NavLink to="/bookings" style={navLinkStyle}>
+                  Booking của tôi
+                </NavLink>
+                <NavLink to="/disputes" style={navLinkStyle}>
+                  Khiếu nại
+                </NavLink>
+              </>
+            )}
 
-          <Link to="/account" style={{ color: "#facc15", textDecoration: "none", fontSize: "0.95rem", fontWeight: "600" }}>
-            Tài khoản ({user?.name || "Bạn"})
-          </Link>
+            {/* Reader Links */}
+            {user?.role === "reader" && (
+              <>
+                <NavLink to="/reader/queue" style={navLinkStyle}>
+                  ⏳ Hàng đợi Reader
+                </NavLink>
+                <NavLink to="/reader/bookings" style={navLinkStyle}>
+                  🔮 Đơn đang phụ trách
+                </NavLink>
+                <NavLink to="/disputes" style={navLinkStyle}>
+                  ⚖️ Khiếu nại
+                </NavLink>
+              </>
+            )}
 
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "transparent",
-              color: "#ef4444",
-              border: "1px solid rgba(239, 68, 68, 0.5)",
-              borderRadius: "8px",
-              fontSize: "0.9rem",
-              fontWeight: "600",
-              cursor: "pointer",
-            }}
-          >
-            Đăng xuất
-          </button>
-        </nav>
+            {/* Admin Links */}
+            {user?.role === "admin" && (
+              <>
+                <NavLink to="/admin/disputes" style={navLinkStyle}>
+                  ⚖️ Xử lý tranh chấp
+                </NavLink>
+                <NavLink to="/admin/users" style={navLinkStyle}>
+                  👥 Người dùng
+                </NavLink>
+              </>
+            )}
+
+            <NavLink to="/account" style={navLinkStyle}>
+              Tài khoản ({user?.full_name || user?.email?.split("@")[0] || "Bạn"})
+            </NavLink>
+
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: "8px 18px",
+                backgroundColor: "transparent",
+                color: "#f87171",
+                border: "1px solid rgba(239, 68, 68, 0.4)",
+                borderRadius: "8px",
+                fontSize: "0.88rem",
+                fontWeight: "600",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.15)";
+                e.currentTarget.style.borderColor = "#ef4444";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.4)";
+              }}
+            >
+              Đăng xuất
+            </button>
+          </nav>
+        </div>
       </header>
 
-      <main>
+      {/* Main Content */}
+      <main style={{ flex: 1 }}>
         <Outlet />
       </main>
     </div>
