@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { getApiErrorMessage } from "../../api/client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -28,11 +29,7 @@ export default function LoginPage() {
         navigate("/packages");
       }
     } catch (err) {
-      setError(
-        err?.detail || 
-        err?.message || 
-        "Email hoặc mật khẩu không chính xác."
-      );
+      setError(getApiErrorMessage(err, "Email hoặc mật khẩu không chính xác."));
     } finally {
       setLoading(false);
     }

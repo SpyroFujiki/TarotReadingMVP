@@ -2,6 +2,33 @@ import { env } from "../config/env";
 
 const TOKEN_KEY = "tarot_access_token";
 
+function formatDetailItem(item) {
+  if (typeof item === "string") return item;
+  if (!item || typeof item !== "object") return "";
+  const msg = item.msg || item.message || "";
+  return String(msg).replace(/^Value error,\s*/i, "").trim();
+}
+
+export function getApiErrorMessage(error, fallback = "Đã xảy ra lỗi.") {
+  if (!error) return fallback;
+
+  const detail = error.detail ?? error.response?.data?.detail;
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (Array.isArray(detail)) {
+    const messages = detail.map(formatDetailItem).filter(Boolean);
+    if (messages.length > 0) return messages.join(" ");
+  } else if (detail && typeof detail === "object") {
+    const message = formatDetailItem(detail);
+    if (message) return message;
+  }
+
+  if (typeof error.message === "string" && error.message && error.message !== "[object Object]") {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export const authStorage = {
   getToken: () => localStorage.getItem(TOKEN_KEY),
   setToken: (token) => localStorage.setItem(TOKEN_KEY, token),
@@ -39,7 +66,12 @@ export async function apiRequest(path, options = {}) {
     if (response.status === 401) {
       authStorage.clear();
     }
-    const error = new Error(payload.detail || `Lỗi yêu cầu (${response.status})`);
+    const error = new Error(
+      getApiErrorMessage(
+        { detail: payload.detail },
+        `Lỗi yêu cầu (${response.status})`,
+      ),
+    );
     error.status = response.status;
     error.detail = payload.detail;
     throw error;

@@ -1,27 +1,78 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { getApiErrorMessage } from "../../api/client";
+
+const PASSWORD_RULES = [
+  {
+    id: "length",
+    label: "Ít nhất 8 ký tự",
+    test: (value) => value.length >= 8,
+  },
+  {
+    id: "upper",
+    label: "Ít nhất 1 chữ hoa (A-Z)",
+    test: (value) => /[A-Z]/.test(value),
+  },
+  {
+    id: "lower",
+    label: "Ít nhất 1 chữ thường (a-z)",
+    test: (value) => /[a-z]/.test(value),
+  },
+  {
+    id: "digit",
+    label: "Ít nhất 1 chữ số (0-9)",
+    test: (value) => /\d/.test(value),
+  },
+  {
+    id: "special",
+    label: "Ít nhất 1 ký tự đặc biệt (!@#$%...)",
+    test: (value) => /[^A-Za-z0-9]/.test(value),
+  },
+];
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
+  const ruleResults = useMemo(
+    () =>
+      PASSWORD_RULES.map((rule) => ({
+        ...rule,
+        passed: rule.test(password),
+      })),
+    [password],
+  );
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    const failedRule = ruleResults.find((rule) => !rule.passed);
+    if (failedRule) {
+      setError(`Mật khẩu chưa đủ điều kiện: ${failedRule.label.toLowerCase()}.`);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await signUp({ name, email, password });
+      await signUp({ name, email, password, confirmPassword });
       navigate("/account");
     } catch (err) {
-      setError(err?.message || "Đăng ký không thành công. Vui lòng kiểm tra lại thông tin!");
+      setError(getApiErrorMessage(err, "Đăng ký không thành công. Vui lòng kiểm tra lại thông tin!"));
     } finally {
       setLoading(false);
     }
@@ -82,6 +133,7 @@ export default function RegisterPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              disabled={loading}
               style={inputStyle}
             />
           </div>
@@ -94,11 +146,12 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={loading}
               style={inputStyle}
             />
           </div>
 
-          <div style={{ marginBottom: "24px" }}>
+          <div style={{ marginBottom: "16px" }}>
             <label style={labelStyle}>Mật khẩu</label>
             <input
               type="password"
@@ -106,6 +159,36 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={loading}
+              autoComplete="new-password"
+              style={inputStyle}
+            />
+            <ul style={{ listStyle: "none", margin: "10px 0 0 0", padding: 0 }}>
+              {ruleResults.map((rule) => (
+                <li
+                  key={rule.id}
+                  style={{
+                    fontSize: "0.8rem",
+                    color: password ? (rule.passed ? "#15803d" : "#b91c1c") : "#6b7280",
+                    marginBottom: "4px",
+                  }}
+                >
+                  {password ? (rule.passed ? "✓" : "✕") : "•"} {rule.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div style={{ marginBottom: "24px" }}>
+            <label style={labelStyle}>Xác nhận mật khẩu</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              disabled={loading}
+              autoComplete="new-password"
               style={inputStyle}
             />
           </div>
